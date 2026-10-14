@@ -7,7 +7,16 @@ import pytest
 from pydantic import ValidationError
 
 from simiq_fit.cli import check_records, main
-from simiq_fit.garment import DATA, Fabric, Garment, grading_warnings, template_zones
+from simiq_fit.garment import (
+    DATA,
+    ChartRow,
+    Fabric,
+    Garment,
+    chart_size,
+    grading_warnings,
+    load_size_chart,
+    template_zones,
+)
 
 EXAMPLES = DATA / "examples"
 
@@ -150,3 +159,42 @@ def test_published_schemas_match_the_models():
     for name, model in (("garment", Garment), ("fabric", Fabric)):
         published = json.loads((DATA / "schema" / f"{name}.schema.json").read_text())
         assert published == model.model_json_schema(), name
+
+
+CHART = [
+    ChartRow(label="S", ranges={"chest": (88, 92), "waist": (72, 76)}),
+    ChartRow(label="M", ranges={"chest": (92, 96), "waist": (76, 80)}),
+    ChartRow(label="L", ranges={"chest": (96, 100), "waist": (80, 84)}),
+]
+
+
+def test_chart_lookup():
+    # Spec scenario: chest 95 cm where M covers 92-96 cm.
+    result = chart_size(CHART, {"chest": 95})
+    assert (result.size, result.rule) == ("M", "single_measure")
+
+
+def test_measures_disagree_the_larger_size_decides():
+    result = chart_size(CHART, {"chest": 94, "waist": 81})  # chest M, waist L
+    assert (result.size, result.rule) == ("L", "larger_size")
+    assert result.by_measure == {"chest": "M", "waist": "L"}
+
+
+def test_a_shared_bound_goes_to_the_larger_size_and_the_top_bound_is_kept():
+    assert chart_size(CHART, {"chest": 92}).size == "M"
+    assert chart_size(CHART, {"chest": 100}).size == "L"
+    assert chart_size(CHART, {"chest": 101}).rule == "beyond_chart"
+
+
+def test_unpublished_measures_are_ignored():
+    assert chart_size(CHART, {"chest": 95, "inseam": 80}).by_measure == {"chest": "M"}
+    with pytest.raises(ValueError, match="publishes none"):
+        chart_size(CHART, {"inseam": 80})
+
+
+def test_isadore_published_chart():
+    # isadore.com size guide, retrieved 2026-10-14: M is chest 97-103, waist 85-91, hip 100-106.
+    chart = load_size_chart("isadore-men")
+    assert [row.label for row in chart] == ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"]
+    assert chart_size(chart, {"chest": 100, "waist": 88, "hip": 103}).size == "M"
+    assert chart_size(chart, {"chest": 100, "waist": 92}).size == "L"

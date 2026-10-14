@@ -1,0 +1,217 @@
+{
+  "brand": "isadore",
+  "applies_to": [
+    "jersey",
+    "bib_shorts"
+  ],
+  "sex": "male",
+  "unit": "cm",
+  "source": {
+    "url": "https://isadore.com/signature-bib-shorts-black#size-guide",
+    "also": "https://isadore.com/echelon-aero-jersey-black#size-guide",
+    "retrieved": "2026-10-14"
+  },
+  "notes": "Body measurements as published, same table on the jersey and bib-shorts pages. 'XXS' is published as '< 85' etc.; stored with 0 as its lower bound. Isadore publishes the same arm-length and inseam ranges for XXL and 3XL. How Isadore measures: chest and hip at the widest place, waist at the narrowest, arm length neck line to wrist, inseam crotch to ankle. The page adds that the chart applies to average body proportions.",
+  "size_chart": [
+    {
+      "label": "XXS",
+      "ranges": {
+        "chest": [
+          0,
+          85
+        ],
+        "waist": [
+          0,
+          73
+        ],
+        "hip": [
+          0,
+          88
+        ],
+        "arm_length": [
+          0,
+          72
+        ],
+        "inseam": [
+          0,
+          76
+        ]
+      }
+    },
+    {
+      "label": "XS",
+      "ranges": {
+        "chest": [
+          85,
+          91
+        ],
+        "waist": [
+          73,
+          79
+        ],
+        "hip": [
+          88,
+          94
+        ],
+        "arm_length": [
+          72,
+          74
+        ],
+        "inseam": [
+          76,
+          78
+        ]
+      }
+    },
+    {
+      "label": "S",
+      "ranges": {
+        "chest": [
+          91,
+          97
+        ],
+        "waist": [
+          79,
+          85
+        ],
+        "hip": [
+          94,
+          100
+        ],
+        "arm_length": [
+          74,
+          76
+        ],
+        "inseam": [
+          78,
+          80
+        ]
+      }
+    },
+    {
+      "label": "M",
+      "ranges": {
+        "chest": [
+          97,
+          103
+        ],
+        "waist": [
+          85,
+          91
+        ],
+        "hip": [
+          100,
+          106
+        ],
+        "arm_length": [
+          76,
+          78
+        ],
+        "inseam": [
+          80,
+          82
+        ]
+      }
+    },
+    {
+      "label": "L",
+      "ranges": {
+        "chest": [
+          103,
+          109
+        ],
+        "waist": [
+          91,
+          97
+        ],
+        "hip": [
+          106,
+          112
+        ],
+        "arm_length": [
+          78,
+          80
+        ],
+        "inseam": [
+          82,
+          84
+        ]
+      }
+    },
+    {
+      "label": "XL",
+      "ranges": {
+        "chest": [
+          109,
+          115
+        ],
+        "waist": [
+          97,
+          103
+        ],
+        "hip": [
+          112,
+          118
+        ],
+        "arm_length": [
+          80,
+          82
+        ],
+        "inseam": [
+          84,
+          86
+        ]
+      }
+    },
+    {
+      "label": "XXL",
+      "ranges": {
+        "chest": [
+          115,
+          121
+        ],
+        "waist": [
+          103,
+          109
+        ],
+        "hip": [
+          118,
+          124
+        ],
+        "arm_length": [
+          82,
+          84
+        ],
+        "inseam": [
+          86,
+          88
+        ]
+      }
+    },
+    {
+      "label": "3XL",
+      "ranges": {
+        "chest": [
+          121,
+          127
+        ],
+        "waist": [
+          109,
+          115
+        ],
+        "hip": [
+          124,
+          130
+        ],
+        "arm_length": [
+          82,
+          84
+        ],
+        "inseam": [
+          86,
+          88
+        ]
+      }
+    }
+  ]
+}

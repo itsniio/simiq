@@ -214,6 +214,49 @@ class Fabric(Strict):
         return curves
 
 
+class ChartLookup(BaseModel):
+    """The brand size chart's answer for one body: the evaluation baseline (D9)."""
+
+    size: str | None  # None: a measure lies beyond the chart's largest size
+    by_measure: dict[str, str | None]  # the size each published measure points to
+    rule: Literal["single_measure", "measures_agree", "larger_size", "beyond_chart"]
+
+
+def chart_size(chart: list[ChartRow], body_cm: dict[str, float]) -> ChartLookup:
+    """Size from the brand's chart: each measure's size, and the larger one when they disagree.
+
+    A range covers lo <= value < hi, so a value on a shared bound goes to the larger size; the
+    largest size also includes its upper bound. Measures the chart does not publish are ignored.
+    """
+    labels = [row.label for row in chart]
+    by_measure = {}
+    for measure, value in body_cm.items():
+        if not any(measure in row.ranges for row in chart):
+            continue
+        found = None
+        for i, row in enumerate(chart):
+            lo, hi = row.ranges[measure]
+            if lo <= value < hi or (i == len(chart) - 1 and value == hi):
+                found = row.label
+        by_measure[measure] = found
+    if not by_measure:
+        raise ValueError(f"the chart publishes none of {', '.join(body_cm)}")
+    if None in by_measure.values():
+        return ChartLookup(size=None, by_measure=by_measure, rule="beyond_chart")
+    sizes = set(by_measure.values())
+    size = max(sizes, key=labels.index)
+    rule = "single_measure" if len(by_measure) == 1 else "measures_agree"
+    return ChartLookup(
+        size=size, by_measure=by_measure, rule="larger_size" if len(sizes) > 1 else rule
+    )
+
+
+def load_size_chart(name: str) -> list[ChartRow]:
+    """A brand's published body-measurement chart from data/size-charts/<name>.json."""
+    data = json.loads((DATA / "size-charts" / f"{name}.json").read_text())
+    return [ChartRow.model_validate(row) for row in data["size_chart"]]
+
+
 def template_zones(garment_type: GarmentType) -> list[Zone]:
     """The default zones of a garment type, from data/templates/<type>.json."""
     data = json.loads((DATA / "templates" / f"{garment_type}.json").read_text())
