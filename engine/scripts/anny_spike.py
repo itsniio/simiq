@@ -93,6 +93,9 @@ def pose_angles(model, bone_poses):
     torso = head["spine01"] - head["root"]
     return {
         "torso from horizontal": 90 - angle_deg(torso, np.array([0, 0, 1.0])),
+        "thigh L from vertical": angle_deg(
+            head["lowerleg01.L"] - head["upperleg01.L"], np.array([0, 0, -1.0])
+        ),
         "hip angle L": angle_deg(torso, head["lowerleg01.L"] - head["upperleg01.L"]),
         "hip angle R": angle_deg(torso, head["lowerleg01.R"] - head["upperleg01.R"]),
     }
@@ -224,9 +227,9 @@ def main():
     ]
     extra = [
         "",
-        "| Body | Pose | Volume posed/rest | Torso from horizontal | Hip angle L | "
-        "Hip angle R | glTF reloads |",
-        "|---|---|---|---|---|---|---|",
+        "| Body | Pose | Rest volume (L) | Volume posed/rest | Torso from horizontal | "
+        "Thigh L from vertical | Hip angle L | Hip angle R | glTF reloads |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for name, phenotype in BODIES.items():
         results, faces = {}, None
@@ -246,12 +249,13 @@ def main():
                     f"| {name} | {pose} | {region} | {r['p1']:.2f} | {r['p50']:.2f} | "
                     f"{r['p99']:.2f} | {r['compressed']:.1f} | {r['stretched']:.1f} |"
                 )
-            volume = signed_volume(body["vertices"], faces) / signed_volume(
-                body["rest_vertices"], faces
-            )
+            rest_volume = signed_volume(body["rest_vertices"], faces)
+            volume = signed_volume(body["vertices"], faces) / rest_volume
             angles = pose_angles(model, body["bone_poses"])
             extra.append(
-                f"| {name} | {pose} | {volume:.3f} | {angles['torso from horizontal']:.0f}° | "
+                f"| {name} | {pose} | {1000 * rest_volume:.1f} | {volume:.3f} | "
+                f"{angles['torso from horizontal']:.0f}° | "
+                f"{angles['thigh L from vertical']:.0f}° | "
                 f"{angles['hip angle L']:.0f}° | {angles['hip angle R']:.0f}° | "
                 f"{len(reloaded.vertices) == len(body['vertices'])} |"
             )

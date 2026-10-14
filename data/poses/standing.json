@@ -3,6 +3,6 @@
   "name": "standing",
   "description": "Anny's rest pose (A-pose, arms about 40 degrees from the body). Standing measurements are taken here.",
   "provenance": "Draft for the Anny spike (fit-engine-poc 2.2), 2026-10-14. No rotations: the rest pose itself.",
-  "convention": "Anny local-ref pose parameterization. Each rotation is [rx, ry, rz] in degrees about axes aligned with the world in the rest pose, applied as Rz*Ry*Rx relative to the parent bone. World axes: +X body's left, -Y forward, +Z up. Positive rx tips a bone forward.",
+  "convention": "Anny local-ref pose parameterization. Each rotation is [rx, ry, rz] in degrees about axes aligned with the world in the rest pose, applied as Rz*Ry*Rx relative to the parent bone. World axes: +X body's left, -Y forward, +Z up. Positive rx tips a bone forward. The root bone is not rotated: Anny's local-ref parameterization ignores it (spike run 1, 2026-10-14), so the whole-body lean is applied to its three children spine05, pelvis.L and pelvis.R.",
   "rotations_deg": {}
 }

@@ -37,3 +37,9 @@ def test_standing_is_the_rest_pose():
 def test_unknown_pose_lists_the_available_ones():
     with pytest.raises(ValueError, match="standing, hoods, drops"):
         load_pose("aero")
+
+
+@pytest.mark.parametrize("name", POSES)
+def test_no_preset_rotates_the_root(name):
+    # Anny's local-ref parameterization ignores the root bone (spike run 1).
+    assert "root" not in load_pose(name)
