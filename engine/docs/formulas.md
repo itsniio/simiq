@@ -72,6 +72,8 @@ A step is accepted only if it lowers Σ r²; otherwise it is halved, up to `FIT_
 
 **Coverage limit (open question for the founders).** Within [0, 1] Anny reaches about BMI 16–43 for men and 13–37 for women (at muscle 0, proportions 0.5, the tables above). The spec accepts BMI 15–45, so a very heavy woman or a very light man is refused with the error above. Either the spec range narrows, or Anny's extrapolation beyond the anchors is allowed for weight, at the risk of unnatural shapes.
 
+`scripts/thin_bodies.py` (run 2026-10-14) tried that extrapolation below weight 0 for a 25-year-old man at 190 cm and woman at 175 cm (renders `measurements/thin-male.png`, `thin-female.png`). At weight 0 and muscle 0 the man is 58 kg (BMI 16.1) and the woman 43 kg (BMI 13.9), both still human-shaped. Already at weight −0.25 (man 44 kg, BMI 12.3) the pelvis bones stand out of the hips and the waist pinches in, and by −0.5 the body is a skeleton. Extrapolating weight downwards is therefore not usable; the thinnest body Anny models well is about BMI 16 for a man and 14 for a woman.
+
 Tests (`test_body_fit.py`): 172 cm and 68 kg land within 171.5–172.5 cm and 66.64–69.36 kg; 20 seeded random inputs with BMI 18–32 land within 0.5 cm and 2 %; muscle stays at m₀ for 180 cm, 75 kg; the two cases that failed with m₀ = 0.5 are matched.
 
 ## Tape measurements (tasks 4.2, 4.3, `tape.py`)
