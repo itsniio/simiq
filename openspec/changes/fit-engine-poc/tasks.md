@@ -6,7 +6,7 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 
 - [x] 1.1 (#2) Initialize git, add root `.gitignore` (including `data/private/`, build outputs, `.venv/`) and push to the team's remote; verify `git status` is clean after the first commit
 - [ ] 1.2 (#3) Create `engine/` as a uv project (Python 3.12) with pytest and ruff, package `simiq_fit`, and add an `engine` job to `.github/workflows/ci.yml` (pytest, ruff, pip-audit, product-code size report against the 6,000-line soft target); verify the job runs green on a PR
-- [ ] 1.3 (#4) Add a pre-commit hook that blocks any staged file under `data/private/`; verify that staging a dummy private file makes the commit fail with an explanatory message
+- [x] 1.3 (#4) Add a pre-commit hook that blocks any staged file under `data/private/`; verify that staging a dummy private file makes the commit fail with an explanatory message
 
 ## 2. Anny spike (go/no-go)
 
@@ -18,7 +18,7 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 ## 3. Body profile
 
 - [ ] 3.1 (#9) Pin with the designer how each step-3 measurement is taken (the Figma "i" texts) and its range, into design D2 and `engine/docs/measurements.md`; verify `openspec validate --all --strict` passes and the designer confirms the definitions
-- [ ] 3.2 (#10) Implement `BodyInputs` and validation ranges (height, weight, age, BMI, step-3 measurements, types); verify unit tests for every range edge, the height 150 / weight 150 case and the `stocky` case
+- [x] 3.2 (#10) Implement `BodyInputs` and validation ranges (height, weight, age, BMI, step-3 measurements, types); verify unit tests for every range edge, the height 150 / weight 150 case and the `stocky` case
 - [ ] 3.3 (#11) Implement body type and arm, torso and leg type offsets as constants on the shape parameters, and `other` built as `male`; verify the body-type, region-type and sex-other scenarios
 - [ ] 3.4 (#12) Implement phenotype fitting to height and mass with `BODY_DENSITY_KG_PER_L` and `DEFAULT_AGE`, and write the derivation in `engine/docs/formulas.md`; verify on 20 random valid inputs that height is within 0.5 cm and mass within 2 %
 - [ ] 3.5 (#13) Add the step-3 measurements as optional targets of the fit, each measured on the mesh as defined in 3.1; verify every given measurement lands within 1.0 cm on test cases
@@ -28,8 +28,8 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 ## 4. Measurements
 
 - [ ] 4.1 (#16) Mark landmarks on the Anny template and store them in `data/landmarks.json`; verify by rendering landmark positions on 5 body shapes (screenshots in `engine/docs/measurements.md`)
-- [ ] 4.2 (#17) Implement tape-style girths (convex hull perimeter of a planar section); verify against analytic cylinder and ellipse meshes within 1 mm
-- [ ] 4.3 (#18) Implement upper-arm and thigh girth profiles in `PROFILE_STEP_CM` steps with interpolation; verify lookup and interpolation tests on a synthetic tapered limb
+- [x] 4.2 (#17) Implement tape-style girths (convex hull perimeter of a planar section); verify against analytic cylinder and ellipse meshes within 1 mm
+- [x] 4.3 (#18) Implement upper-arm and thigh girth profiles in `PROFILE_STEP_CM` steps with interpolation; verify lookup and interpolation tests on a synthetic tapered limb
 - [ ] 4.4 (#19) Implement back length and vertical trunk girth as surface paths; verify back length in `hoods` exceeds `standing` on 10 body shapes
 - [ ] 4.5 (#20) Implement per-measurement standard deviations by input set as constants with their sources noted; verify chest SD is smaller when chest girth is given
 - [ ] 4.6 (#21) Document every measurement definition with a figure in `engine/docs/measurements.md`; verify each body-profile measurement has an entry

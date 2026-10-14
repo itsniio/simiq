@@ -1,0 +1,11 @@
+#!/bin/sh
+# Refuses commits that stage anything under data/private/ (CLAUDE.md, Constraints).
+# Enable once per clone: git config core.hooksPath .githooks
+private=$(git diff --cached --name-only --diff-filter=ACMR | grep '^data/private/')
+if [ -n "$private" ]; then
+  echo "Commit refused: data/private/ holds personal fit-study data and never goes into git." >&2
+  echo "$private" >&2
+  echo "Unstage with: git restore --staged data/private/" >&2
+  exit 1
+fi
+exit 0

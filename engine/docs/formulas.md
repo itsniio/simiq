@@ -57,3 +57,31 @@ Anny is differentiable, so PyTorch gives the 2 × 2 Jacobian J = ∂r/∂(h, w).
 starting from (0.5, 0.5). The step limit keeps an early, badly linearised step from jumping across the parameter range; the clamp keeps the parameters where Anny interpolates instead of extrapolating. The fit stops when the height is within `FIT_STOP_HEIGHT_CM` = 0.05 cm and the mass within `FIT_STOP_MASS_SHARE` = 0.2 % of the target, ten times tighter than the spec's 0.5 cm and 2 %. If it has not stopped after `FIT_MAX_STEPS` = 25 steps, no Anny body in range reaches the inputs and the fit raises an error with the closest height and mass it found.
 
 Tests: height 172 cm and weight 68 kg land within 171.5–172.5 cm and 66.64–69.36 kg; 20 random valid inputs (seeded) land within 0.5 cm and 2 % (`test_body_fit.py`).
+
+## Tape measurements (tasks 4.2, 4.3, `tape.py`)
+
+### Girth
+
+A tape measure laid around a body part in a plane reads the length of the shortest closed loop that encloses the cross-section, which is the perimeter of the cross-section's **convex hull**: the tape spans concavities instead of following them (between the shoulder blades, under the buttocks).
+
+1. **Plane section.** For a plane through point p with unit normal n, each vertex gets s = (v − p) · n. A mesh edge with s of opposite signs at its ends crosses the plane at v_a + t (v_b − v_a), with t = s_a / (s_a − s_b). A triangle with mixed signs has exactly two crossed edges and contributes one segment between them; segments that share a crossed edge chain into closed loops.
+2. **The loop around the point.** A plane at chest height in the A-pose also cuts the arms. The loops are projected onto two unit vectors spanning the plane; the loop containing p (even-odd rule) is the one measured. If several contain p, the outermost (largest hull) is taken; if none does, the loop nearest to p.
+3. **Convex hull perimeter** by Andrew's monotone chain.
+
+Tests (`test_tape.py`), all within 1 mm:
+
+| Shape | Hand-computed girth |
+|---|---|
+| Cylinder r = 0.15 m | 2π · 0.15 = 0.94248 m |
+| Elliptic cylinder a = 0.15, b = 0.10 m | Ramanujan: π[3(a+b) − √((3a+b)(a+3b))] = π[0.75 − √0.2475] = 0.79327 m |
+| 0.2 m square with a 0.05 × 0.05 m notch | outline 0.9 m; tape reads the square, 0.8 m |
+| Cylinder r = 0.15 cut by a plane tilted 30° | ellipse with semi-axes 0.15 and 0.15 / cos 30° = 0.17321: 1.01669 m |
+| Torso r = 0.15 between two arms r = 0.05, one plane | 0.94248 m around the torso point, 2π · 0.05 = 0.31416 m around an arm point |
+
+A 512-sided polygon underestimates a circle's perimeter by 2πr (π/512)² / 6 ≈ 0.006 mm at r = 0.15 m, far inside the 1 mm tolerance.
+
+### Limb profile
+
+Upper-arm and thigh girths are measured on planes perpendicular to the bone axis from `start` to `end`, every `step` (`PROFILE_STEP_CM` = 2 cm in `measure.py`, task 4.3). A girth between two levels is linearly interpolated (`profile_at`); a distance outside the profile is an error rather than an extrapolation.
+
+Test: a truncated cone whose radius falls linearly from 0.079 m by 0.1 m per metre of depth gives 2π(0.079 − 0.1 d) at each level d = 0, 0.02, …, 0.38 m; the profile 0.50, 0.48, 0.46 at 0.02 m steps gives 0.475 at 0.025 m (a quarter of the way from 0.48 to 0.46).

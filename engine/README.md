@@ -9,6 +9,12 @@ uv run pytest
 uv run ruff check
 ```
 
+Once per clone, from the repository root, turn on the hook that refuses commits with files under `data/private/`:
+
+```sh
+git config core.hooksPath .githooks
+```
+
 ## Anny spike (tasks 2.1–2.4)
 
 ```sh
