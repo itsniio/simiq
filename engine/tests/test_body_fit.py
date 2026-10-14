@@ -94,6 +94,22 @@ def test_twenty_random_valid_inputs_are_matched(model):
     assert misses == []
 
 
+@pytest.mark.parametrize("height", [160.0, 190.0])  # 14 × 1.6² = 35.8 kg, above the 35 kg minimum
+def test_bmi_range_edges_are_matched(model, height):
+    # The founders' range (2026-10-14): women BMI 14-40, men 16-40; age 35 by default.
+    misses = []
+    for sex, bmi in (("female", 14), ("female", 40), ("male", 16), ("male", 40)):
+        weight = round(bmi * (height / 100) ** 2, 2)
+        try:
+            _, got_height, got_mass = built(model, sex=sex, height_cm=height, weight_kg=weight)
+        except ValueError as error:
+            misses.append((sex, bmi, height, weight, str(error)))
+            continue
+        if abs(got_height - height) > 0.5 or abs(got_mass - weight) > 0.02 * weight:
+            misses.append((sex, bmi, height, weight, round(got_height, 1), got_mass))
+    assert misses == []
+
+
 def test_no_age_is_built_for_35(model):
     without, _, _ = built(model, height_cm=180, weight_kg=75)
     with_35, _, _ = built(model, height_cm=180, weight_kg=75, age=35)

@@ -51,6 +51,7 @@ docs/           guides: measuring garments, fit-study protocol, integration
 - The body type sets the starting point and a prior on the muscle and proportion parameters: `slim`, `regular` and `athletic` are three fixed parameter offsets, chosen so that at equal height and weight `athletic` has the larger chest and shoulders. Arm, torso and leg types add offsets on their region's local parameters.
 - Sex `other` is built as `male`, as the designer's note in Figma says ("použije sa male body"), until the founders rule.
 - Without an age the body is built for 35 years (`DEFAULT_AGE`); the flow does not ask for age.
+- Supported BMI: women 14–40, men and `other` 16–40 (founders, 2026-10-14, grill #14). Below these Anny's bodies grow bone artifacts; `engine/docs/formulas.md`, "Coverage limit", has the evidence.
 - The parameters are fitted by gradient descent, since Anny is differentiable in PyTorch. Loss terms:
   - height: tolerance 0.5 cm;
   - mass, computed as mesh volume × `BODY_DENSITY_KG_PER_L` = 1.03. A constant; retuning it against study participants is its own PR with before/after numbers;

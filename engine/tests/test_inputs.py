@@ -24,7 +24,7 @@ def test_height_out_of_range_names_the_field():
 
 
 def test_height_edges_are_inclusive():
-    # At 75 kg the BMI stays inside 15-45: 75 / 1.40² = 38.3 and 75 / 2.10² = 17.0.
+    # At 75 kg the BMI stays inside 16-40: 75 / 1.40² = 38.3 and 75 / 2.10² = 17.0.
     BodyInputs(**{**REQUIRED, "height_cm": 140})
     BodyInputs(**{**REQUIRED, "height_cm": 210})
     assert invalid_fields(height_cm=139.9) == {"height_cm"}
@@ -40,19 +40,42 @@ def test_weight_edges_are_inclusive():
 
 
 def test_implausible_height_and_weight_combination():
-    # BMI = 150 / 1.5² = 66.7, above 45.
+    # BMI = 150 / 1.5² = 66.7, above 40.
     with pytest.raises(ValidationError, match="height and weight combination"):
         BodyInputs(**{**REQUIRED, "height_cm": 150, "weight_kg": 150})
 
 
-def test_bmi_edges():
-    # At 180 cm, BMI 15 is 15 × 1.8² = 48.6 kg and BMI 45 is 45 × 1.8² = 145.8 kg.
-    BodyInputs(**{**REQUIRED, "weight_kg": 48.6})
-    BodyInputs(**{**REQUIRED, "weight_kg": 145.8})
+def too_thin_or_heavy(**changes):
     with pytest.raises(ValidationError, match="height and weight combination"):
-        BodyInputs(**{**REQUIRED, "weight_kg": 48.5})
-    with pytest.raises(ValidationError, match="height and weight combination"):
-        BodyInputs(**{**REQUIRED, "weight_kg": 146.0})
+        BodyInputs(**{**REQUIRED, **changes})
+
+
+def test_bmi_edges_for_men():
+    # At 180 cm, BMI 16 is 16 × 1.8² = 51.84 kg and BMI 40 is 40 × 1.8² = 129.6 kg.
+    BodyInputs(**{**REQUIRED, "weight_kg": 51.84})
+    BodyInputs(**{**REQUIRED, "weight_kg": 129.6})
+    too_thin_or_heavy(weight_kg=51.8)  # BMI 15.99
+    too_thin_or_heavy(weight_kg=129.7)  # BMI 40.03
+
+
+def test_bmi_edges_for_women():
+    # At 180 cm, BMI 14 is 14 × 1.8² = 45.36 kg; the upper edge is the men's, 129.6 kg.
+    BodyInputs(**{**REQUIRED, "sex": "female", "weight_kg": 45.36})
+    BodyInputs(**{**REQUIRED, "sex": "female", "weight_kg": 129.6})
+    too_thin_or_heavy(sex="female", weight_kg=45.3)  # BMI 13.98
+    too_thin_or_heavy(sex="female", weight_kg=129.7)
+
+
+def test_bmi_range_depends_on_sex():
+    # Spec scenario: 48 / 1.8² = 14.8, inside the women's 14-40, below the men's 16.
+    BodyInputs(**{**REQUIRED, "sex": "female", "weight_kg": 48})
+    too_thin_or_heavy(sex="male", weight_kg=48)
+
+
+def test_sex_other_has_the_mens_bmi_range():
+    # Built as a male body, so held to the male lower edge: 51.8 kg at 180 cm is BMI 15.99.
+    BodyInputs(**{**REQUIRED, "sex": "other", "weight_kg": 51.84})
+    too_thin_or_heavy(sex="other", weight_kg=51.8)
 
 
 def test_unknown_type_names_the_field():

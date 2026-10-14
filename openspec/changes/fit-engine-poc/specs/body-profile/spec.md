@@ -37,7 +37,7 @@ Age SHALL be optional; without it the body SHALL be built for age 35. A body for
 - **THEN** the produced body equals the body for sex `male` with the same other inputs
 
 ### Requirement: Input validation
-The system SHALL reject inputs outside the supported ranges with an error naming each invalid field: height 140–210 cm, weight 35–160 kg, age 16–90 years, BMI 15–45, and each step-3 measurement within its range in design D2. Types SHALL be one of the listed values.
+The system SHALL reject inputs outside the supported ranges with an error naming each invalid field: height 140–210 cm, weight 35–160 kg, age 16–90 years, BMI 14–40 for sex `female` and 16–40 for `male` and `other`, and each step-3 measurement within its range in design D2. Types SHALL be one of the listed values.
 
 #### Scenario: Height out of range
 - **WHEN** height 250 is submitted
@@ -45,6 +45,12 @@ The system SHALL reject inputs outside the supported ranges with an error naming
 
 #### Scenario: Implausible combination
 - **WHEN** height 150 and weight 150 are submitted
+- **THEN** the system returns a validation error stating that the height and weight combination is outside the supported range
+
+#### Scenario: BMI range depends on sex
+- **WHEN** height 180 and weight 48 (BMI 14.8) are submitted with sex `female`
+- **THEN** the inputs are accepted
+- **WHEN** the same height and weight are submitted with sex `male`
 - **THEN** the system returns a validation error stating that the height and weight combination is outside the supported range
 
 #### Scenario: Unknown type

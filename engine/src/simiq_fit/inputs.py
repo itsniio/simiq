@@ -7,7 +7,9 @@ from pydantic import BaseModel, Field, model_validator
 Sex = Literal["female", "male", "other"]
 Build = Literal["slim", "regular", "athletic"]
 
-BMI_RANGE = (15, 45)
+# Founders' ruling 2026-10-14: the thinnest bodies Anny models without artifacts (formulas.md,
+# "Coverage limit"); `other` is built as male, so it gets the male range.
+BMI_RANGES = {"female": (14, 40), "male": (16, 40), "other": (16, 40)}
 
 
 def cm(low: float, high: float):
@@ -42,9 +44,10 @@ class BodyInputs(BaseModel):
     @model_validator(mode="after")
     def bmi_in_range(self):
         bmi = round(self.weight_kg / (self.height_cm / 100) ** 2, 6)
-        if not BMI_RANGE[0] <= bmi <= BMI_RANGE[1]:
+        low, high = BMI_RANGES[self.sex]
+        if not low <= bmi <= high:
             raise ValueError(
                 f"height and weight combination is outside the supported range "
-                f"(BMI {bmi:.1f}, supported {BMI_RANGE[0]}-{BMI_RANGE[1]})"
+                f"(BMI {bmi:.1f}, supported {low}-{high})"
             )
         return self

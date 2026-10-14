@@ -18,6 +18,7 @@ Typed answers from the founder during the planning session on 2026-10-14, kept a
 | 11 | Kill criterion and review dates as proposed in README? | "asi okej" | Accepted: reviews on 2026-12-04 and 2027-01-29; stop or change course if the study does not beat Isadore's size chart or no brand signs a pilot with data. | two-way |
 | 12 | Where is the onboarding designed? | "https://www.figma.com/design/nmFcu26FyE2mqlIGnJJ9Vh/NIIO?node-id=211-1083" | The Figma page `simik` is the UI contract: three onboarding steps, the studio layout with a product panel and a bike control (`tryon-viewer-mvp/design.md` D4b). | two-way |
 | 13 | GitHub issues per task? | "asi mozes ale malo by to byt vlastne zo specky 1:1" | One issue per task in `tasks.md`, its text taken word for word; the task line carries the issue number. | two-way |
+| 14 | Supported BMI range? Anny models a man down to about BMI 16 and a woman down to 14; thinner, its bodies grow bone artifacts (`engine/docs/formulas.md`). | "dobre zeny 14 muzi 16 horna 40 pre oboch" | Women BMI 14–40, men 16–40 (`other` as men, since it is built as male). Replaces the spec's 15–45. | two-way |
 
 From the Figma page itself (designer's notes, to be confirmed by the founders): sex `other` is built as `male`; more than three body types may come; an embed frame is still to be designed.
 
