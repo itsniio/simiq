@@ -3,7 +3,7 @@
 import pytest
 
 from simiq_fit.fit import ZoneFit, ZoneRange
-from simiq_fit.recommend import BAND_COST, Reason, choose_size, penalty
+from simiq_fit.recommend import BAND_COST, Reason, choose_size, penalty, recommend
 
 RANGES = {
     "chest": ZoneRange(kind="girth", edges=[-0.05, 0.0, 0.10, 0.20]),  # ok 0-10 %, centre 5 %
@@ -62,3 +62,48 @@ def test_smallest_size_has_only_one_neighbour():
 def test_penalty_needs_a_weight_for_every_zone():
     with pytest.raises(KeyError):
         penalty(zones(0.05, "ok", 2.0, "ok"), {"chest": 2})
+
+
+def chest_only_case(chest_cm, sd_cm):
+    """The example jersey reduced to its chest zone (S/M/L 80/84/88 cm), ok band 2-6 % strain."""
+    import json
+
+    from simiq_fit.garment import DATA, Fabric, Garment
+    from simiq_fit.measure import Measurements
+
+    data = json.loads((DATA / "examples" / "garment-jersey.json").read_text())
+    data["zones"] = [z for z in data["zones"] if z["id"] == "chest"]
+    garment = Garment.model_validate(data)
+    fabric = Fabric.model_validate_json((DATA / "examples" / "fabric-knit.json").read_text())
+    body = Measurements(
+        pose="hoods",
+        girths_cm={"chest_girth": chest_cm, "waist_girth": 80, "hip_girth": 90},
+        profiles_cm={"upper_arm_girth": [30] * 8, "thigh_girth": [60] * 8},
+        lengths_cm={"back_length": 63, "vertical_trunk_girth": 160},
+    )
+    sds = {n: sd_cm for n in ("chest_girth", "waist_girth", "hip_girth", "upper_arm_girth",
+                              "thigh_girth", "back_length", "vertical_trunk_girth")}  # fmt: skip
+    ranges = {"chest": ZoneRange(kind="girth", edges=[-0.05, 0.02, 0.06, 0.12])}
+    return recommend(garment, {"example-knit": fabric}, body, sds, ranges, [], 65)
+
+
+def test_clear_body():
+    # Spec: chest 87.36 cm = 84 × 1.04 sits mid-way in M's ok band (2-6 %, i.e. 85.68-89.04 cm);
+    # S is tight (9.2 %), L loose (-0.7 %). With an SD of 0.5 cm the edges are 3.4 SDs away.
+    result = chest_only_case(87.36, 0.5)
+    assert result.size == "M" and result.confidence >= 0.8 and result.alternative is None
+    assert result.pose == "hoods"
+
+
+def test_borderline_body():
+    # Spec: chest 89.4 cm lies between M's ok band (to 89.04) and L's (from 88 × 1.02 = 89.76): M
+    # is tight (6.43 %), L loose (1.59 %), equal penalties, and the tie-break barely prefers L
+    # (0.602 vs 0.607 ok-band widths off centre). An SD of 0.5 cm flips it about half the time.
+    result = chest_only_case(89.4, 0.5)
+    assert result.size in ("M", "L") and result.confidence < 0.6
+    assert {result.size, result.alternative} == {"M", "L"}
+
+
+def test_same_request_same_confidence():
+    first, second = chest_only_case(89.4, 0.5), chest_only_case(89.4, 0.5)
+    assert first.confidence == second.confidence and first.alternative == second.alternative

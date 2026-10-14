@@ -218,3 +218,15 @@ The size with the lowest penalty is recommended.
 **Explanation.** For the sizes next to the recommended one (one smaller, one larger), every zone whose status differs from the recommended size's is listed as (size, zone, status). The viewer turns these into sentences in each language.
 
 Tests (`test_recommend.py`): the spec's clear case, S with a tight chest (weight 2: penalty 2), M all ok (0), L with a loose chest (2): M, explained by (S, chest, tight) and (L, chest, loose). A too_tight chest and a short back: 2 × 3 + 1 × 1 = 7. Tie: M's chest at 9 % is 4 % from the 5 % centre of a 10 %-wide band, 0.4 widths, × 2 = 0.8; L's back at 3.8 cm is 1.8 cm from the 2 cm centre of a 4 cm band, 0.45; L wins.
+
+### Confidence and alternative (task 7.2)
+
+The body's measurements are uncertain (`uncertainty.py`: an SD per measurement for the inputs given). `recommend` draws `SAMPLES` = 64 measurement vectors, each measurement moved by a normal deviation with its SD (a limb profile moved as a whole), recommends a size for each draw, and reports
+
+    confidence = (draws whose size equals the recommendation) / 64
+
+When confidence < `CONFIDENCE_THRESHOLD` = 0.6 the most frequent other size is named as the alternative. The draws use a fixed seed (`SAMPLE_SEED`), so the same request always gives the same confidence.
+
+**Simplification until task 3.5.** Design D8 propagates deviations of the standing girths into the pose through a Jacobian computed with autograd. That needs the step-3 measurements as targets of the body fit (task 3.5). Until then the deviation of a pose measurement is taken equal to the standing one (Jacobian = identity).
+
+Tests (`test_recommend.py`, the example jersey reduced to its chest zone, sizes 80/84/88 cm, ok band 2–6 % strain, SD 0.5 cm): a 87.36 cm chest (M at 4 %, S tight at 9.2 %, L loose at −0.7 %) gives M with confidence 1.0 and no alternative. A 89.4 cm chest falls between M's ok band (up to 84 · 1.06 = 89.04 cm) and L's (from 88 · 1.02 = 89.76 cm): M tight, L loose, equal penalties, and the tie-break prefers L by 0.602 against 0.607 band widths. The draws split: L with confidence 0.53, alternative M.

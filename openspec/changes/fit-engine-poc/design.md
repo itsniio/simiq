@@ -141,7 +141,7 @@ Pydantic models are the source of truth. JSON Schema is exported for TypeScript 
 - **Recommendation:** the lowest penalty wins. Ties go to the size closest to the ok-band centers of its weighted zones.
 - **Confidence:**
   - Sample K = 64 measurement vectors around the body. The standard deviations depend on which inputs were given (body-profile).
-  - Deviations in standing girths propagate to pose measurements through a Jacobian computed once per body with autograd, so each sample does not need a new body fit.
+  - Deviations in standing girths propagate to pose measurements through a Jacobian computed once per body with autograd, so each sample does not need a new body fit. Until task 3.5 makes the step-3 measurements targets of the fit, the Jacobian is identity: a pose measurement deviates as much as the standing one.
   - Confidence = share of samples whose best size equals the recommendation.
   - Alternative = the next most frequent size when confidence < `CONFIDENCE_THRESHOLD` = 0.6.
 - **Explanation:** the zones whose status differs between the recommended size and its neighbors, as structured data. Wording is localized in the viewer.
