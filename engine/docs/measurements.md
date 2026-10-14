@@ -73,3 +73,29 @@ The back is longer in `hoods` on all ten bodies, as the spec requires. Two thing
 ![female 165 cm 60 kg](measurements/lengths-female-165-60.png)
 ![female 170 cm 85 kg](measurements/lengths-female-170-85.png)
 ![male 185 cm 100 kg](measurements/lengths-male-185-100.png)
+
+## Uncertainty (task 4.5)
+
+Each measurement carries a standard deviation (`uncertainty.py`), which the confidence of a size recommendation samples from (design D8).
+
+**Not entered by the shopper:** the measurement is predicted from sex, height and weight, with the residual SD of the regression *measurement ~ stature + weight + BMI* over ANSUR II, the US Army's 2012 anthropometric survey (public domain; `scripts/ansur_sds.py`, run 2026-10-14; the CSVs are downloaded by hand to `data/external/ansur2/`, which git ignores).
+
+| Measurement | ANSUR II column | Men: SD given height and weight / SD of the population (cm) | Women |
+|---|---|---|---|
+| chest_girth | chestcircumference | 3.19 / 8.74 | 4.24 / 8.27 |
+| waist_girth | waistcircumference | 4.37 / 11.17 | 4.82 / 9.99 |
+| hip_girth | buttockcircumference | 2.60 / 7.67 | 2.91 / 7.59 |
+| upper_arm_girth | bicepscircumferenceflexed | 1.88 / 3.46 | 1.39 / 3.08 |
+| thigh_girth | thighcircumference | 2.25 / 5.85 | 2.26 / 5.58 |
+| back_length | waistbacklength | 2.07 / 2.77 | 2.08 / 2.64 |
+| vertical_trunk_girth | verticaltrunkcircumferenceusa | 3.97 / 8.95 | 3.77 / 7.60 |
+
+Height and weight explain most of the spread: the chest's SD falls from 8.7 to 3.2 cm for men. Caveats, each a reason the real SDs for shoppers are likely somewhat larger:
+
+- **Population.** ANSUR II measured 4082 male and 1986 female soldiers: fitter and younger than shoppers, with fewer very light or very heavy bodies.
+- **Definitions.** ANSUR's biceps girth is flexed (ours relaxed); its waist back length runs from C7 to the waist (ours to the hip line). The SDs are used as the closest available.
+- **Model error is not included.** These are the SDs of a perfect regression; Anny's body for given height and weight is not that regression. The study (group 8) compares engine measurements with tape measurements and may raise them.
+
+**Entered by the shopper (step 3):** a self-taken tape measurement has an SD of 5 % of its value (`SELF_MEASURED_SD_SHARE`). Source: self- minus researcher-measured waist circumference had an SD of 4.82 cm at a mean of 96.6 cm, 617 adults with a mailed tape and written instructions (Contardo Ayala, Nijpels, Lakerveld, BMC Medicine 2014;12:170). The same share is assumed for chest, biceps and thigh. The prediction and the self-measurement are combined as two independent estimates (formulas.md, "Combining two estimates"), so an entered measurement always narrows the SD: with a 100 cm chest a man's chest SD falls from 3.19 to 1/√(1/3.19² + 1/5²) = 2.69 cm.
+
+Hip girth, back length and vertical trunk girth have no step-3 input and keep the predicted SD.

@@ -129,3 +129,15 @@ Tests (`test_tape.py`), within 1 mm:
 Upper-arm and thigh girths are measured on planes perpendicular to the bone axis from `start` to `end`, every `step` (`PROFILE_STEP_CM` = 2 cm in `measure.py`, task 4.3). A girth between two levels is linearly interpolated (`profile_at`); a distance outside the profile is an error rather than an extrapolation.
 
 Test: a truncated cone whose radius falls linearly from 0.079 m by 0.1 m per metre of depth gives 2π(0.079 − 0.1 d) at each level d = 0, 0.02, …, 0.38 m; the profile 0.50, 0.48, 0.46 at 0.02 m steps gives 0.475 at 0.025 m (a quarter of the way from 0.48 to 0.46).
+
+## Uncertainty (task 4.5, `uncertainty.py`)
+
+### Combining two estimates
+
+A measurement predicted from height and weight (SD a) and the shopper's own tape measurement (SD b) are two independent estimates of the same quantity. Weighting each by its inverse variance gives the estimate with the smallest variance, and
+
+    1 / σ² = 1 / a² + 1 / b²,   σ = (1/a² + 1/b²)^(−1/2)
+
+σ is below both a and b, so entering a measurement always narrows the SD. The SDs themselves and their sources are in [measurements.md](measurements.md), "Uncertainty".
+
+Tests (`test_uncertainty.py`): a = 3, b = 4 gives 1/√(25/144) = 12/5 = 2.4; a 100 cm chest gives b = 5 cm and σ = (1/p² + 1/25)^(−1/2) with p the predicted chest SD; the other measurements keep their predicted SDs.
