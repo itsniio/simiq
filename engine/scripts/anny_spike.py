@@ -41,6 +41,7 @@ BODIES = {
 }
 
 # Vertices are assigned to the region of their heaviest skinning bone.
+# The hip region is split into front and back halves by the rest-pose depth of its vertices.
 REGIONS = {
     "hip-crotch": {"root", "spine05", "pelvis.L", "pelvis.R", "upperleg01.L", "upperleg01.R"},
     "shoulder": {
@@ -79,26 +80,16 @@ def angle_deg(u, v):
 
 
 def pose_angles(model, bone_poses):
-    head = {
-        name: bone_poses[model.bone_labels.index(name), :3, 3]
-        for name in (
-            "root",
-            "spine01",
-            "upperleg01.L",
-            "lowerleg01.L",
-            "upperleg01.R",
-            "lowerleg01.R",
-        )
-    }
-    torso = head["spine01"] - head["root"]
-    return {
-        "torso from horizontal": 90 - angle_deg(torso, np.array([0, 0, 1.0])),
-        "thigh L from vertical": angle_deg(
-            head["lowerleg01.L"] - head["upperleg01.L"], np.array([0, 0, -1.0])
-        ),
-        "hip angle L": angle_deg(torso, head["lowerleg01.L"] - head["upperleg01.L"]),
-        "hip angle R": angle_deg(torso, head["lowerleg01.R"] - head["upperleg01.R"]),
-    }
+    head = {name: bone_poses[i, :3, 3] for i, name in enumerate(model.bone_labels)}
+    hips = (head["upperleg01.L"] + head["upperleg01.R"]) / 2
+    shoulders = (head["upperarm01.L"] + head["upperarm01.R"]) / 2
+    torso = shoulders - hips  # the bike-fit torso line, hip joints to shoulder joints
+    angles = {"torso from horizontal": np.degrees(np.arctan2(torso[2], -torso[1]))}
+    for side in ("L", "R"):
+        hip, knee, ankle = (head[f"{b}.{side}"] for b in ("upperleg01", "lowerleg01", "foot"))
+        angles[f"hip angle {side}"] = angle_deg(shoulders - hip, knee - hip)
+        angles[f"knee angle {side}"] = angle_deg(hip - knee, ankle - knee)
+    return angles
 
 
 def edge_metrics(rest, posed, edge_list, regions):
@@ -106,6 +97,13 @@ def edge_metrics(rest, posed, edge_list, regions):
         posed[edge_list[:, 0]] - posed[edge_list[:, 1]], axis=1
     ) / np.linalg.norm(rest[edge_list[:, 0]] - rest[edge_list[:, 1]], axis=1)
     rows = {}
+    hip = regions["hip-crotch"]
+    back = rest[:, 1] > np.median(rest[hip, 1])
+    regions = {
+        "hip front": hip & ~back,
+        "buttock-crotch": hip & back,
+        "shoulder": regions["shoulder"],
+    }
     for name, mask in regions.items():
         r = ratio[mask[edge_list[:, 0]] | mask[edge_list[:, 1]]]
         rows[name] = dict(
@@ -164,22 +162,15 @@ def render_body(name, results, faces):
     fig.savefig(DOCS / f"{name}.png", dpi=110, bbox_inches="tight")
     plt.close(fig)
 
-    fig = plt.figure(figsize=(12, 8))
-    for i, pose in enumerate(("hoods", "drops")):
-        posed, _, pelvis = results[pose]
+    fig = plt.figure(figsize=(12, 16))
+    rows = [(p, c) for p in ("hoods", "drops") for c in (False, True)]
+    for i, (pose, coloured) in enumerate(rows):
+        posed, values, pelvis = results[pose]
         for j, (view, (elev, azim)) in enumerate(VIEWS.items()):
-            ax = fig.add_subplot(2, len(VIEWS), i * len(VIEWS) + j + 1, projection="3d")
-            draw(
-                ax,
-                posed,
-                faces,
-                None,
-                elev,
-                azim,
-                center=pelvis,
-                half=0.25,
-                title=f"{pose} · {view} · hips",
-            )
+            ax = fig.add_subplot(len(rows), len(VIEWS), i * len(VIEWS) + j + 1, projection="3d")
+            title = f"{pose} · {view} · hips" + (" · strain" if coloured else "")
+            values_or_none = values if coloured else None
+            draw(ax, posed, faces, values_or_none, elev, azim, pelvis, 0.25, title)
     fig.savefig(DOCS / f"{name}-hips.png", dpi=130, bbox_inches="tight")
     plt.close(fig)
 
@@ -220,7 +211,7 @@ def main():
         "",
         f"Edge length ratio posed/rest per region; compressed < {COMPRESSED}, "
         f"stretched > {STRETCHED} (share of edges in %). Volume ratio is the whole mesh. "
-        "Angles come from the posed bones.",
+        "Angles come from the posed bones; torso is the hip-joint-to-shoulder-joint line.",
         "",
         "| Body | Pose | Region | p1 | p50 | p99 | Compressed % | Stretched % |",
         "|---|---|---|---|---|---|---|---|",
@@ -228,8 +219,8 @@ def main():
     extra = [
         "",
         "| Body | Pose | Rest volume (L) | Volume posed/rest | Torso from horizontal | "
-        "Thigh L from vertical | Hip angle L | Hip angle R | glTF reloads |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "Hip angle L | Hip angle R | Knee angle L | Knee angle R | glTF reloads |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for name, phenotype in BODIES.items():
         results, faces = {}, None
@@ -255,8 +246,8 @@ def main():
             extra.append(
                 f"| {name} | {pose} | {1000 * rest_volume:.1f} | {volume:.3f} | "
                 f"{angles['torso from horizontal']:.0f}° | "
-                f"{angles['thigh L from vertical']:.0f}° | "
                 f"{angles['hip angle L']:.0f}° | {angles['hip angle R']:.0f}° | "
+                f"{angles['knee angle L']:.0f}° | {angles['knee angle R']:.0f}° | "
                 f"{len(reloaded.vertices) == len(body['vertices'])} |"
             )
         render_body(name, results, faces)
