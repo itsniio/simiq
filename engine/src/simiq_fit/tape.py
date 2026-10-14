@@ -98,6 +98,32 @@ def girth(vertices, faces, point, normal) -> float:
     return hull_perimeter(chosen)
 
 
+SECTION_SNAP = 0.005  # a path point farther than this from the section loop is not on it (5 mm)
+
+
+def surface_arc(vertices, faces, start, end, normal, via) -> np.ndarray:
+    """Points along the surface from start to end, in the plane through start, on via's side."""
+    start, end, via = (np.asarray(p, float) for p in (start, end, via))
+    loops = section_loops(vertices, faces, start, normal)
+    if not loops:
+        raise ValueError("the plane does not cut the mesh")
+    loop = min(loops, key=lambda loop: np.linalg.norm(loop - start, axis=1).min())
+    nearest = [np.linalg.norm(loop - p, axis=1) for p in (start, end, via)]
+    if max(d.min() for d in nearest) > SECTION_SNAP:
+        raise ValueError("start, end or via is not on the section loop through start")
+    i, j, k = (int(d.argmin()) for d in nearest)
+    n = len(loop)
+    if (k - i) % n <= (j - i) % n:  # via lies on the forward arc i -> j
+        return np.vstack([start, loop[[(i + s) % n for s in range((j - i) % n + 1)]], end])
+    return np.vstack([start, loop[[(i - s) % n for s in range((i - j) % n + 1)]], end])
+
+
+def surface_path(vertices, faces, start, end, normal, via) -> float:
+    """Length of the surface arc from start to end on via's side (a tape laid along the skin)."""
+    arc = surface_arc(vertices, faces, start, end, normal, via)
+    return float(np.linalg.norm(np.diff(arc, axis=0), axis=1).sum())
+
+
 def limb_profile(vertices, faces, start, end, step) -> np.ndarray:
     """Girths perpendicular to the axis start->end, every `step` from the start."""
     start, end = np.asarray(start, float), np.asarray(end, float)

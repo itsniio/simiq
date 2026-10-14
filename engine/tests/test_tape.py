@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from simiq_fit.tape import girth, limb_profile, profile_at
+from simiq_fit.tape import girth, limb_profile, profile_at, surface_arc, surface_path
 
 UP = np.array([0.0, 0.0, 1.0])
 MM = 0.001
@@ -115,3 +115,58 @@ def test_profile_lookup_interpolates_between_steps():
 def test_profile_lookup_outside_the_profile_is_an_error():
     with pytest.raises(ValueError, match="outside"):
         profile_at(np.array([0.50, 0.48]), step=0.02, distance=0.05)
+
+
+# A 0.3 x 0.1 m rectangle centred on the axis; the plane z = 0.5 cuts it between rings.
+RECTANGLE = np.array([[0.15, -0.05], [0.15, 0.05], [-0.15, 0.05], [-0.15, -0.05]])
+
+
+def test_surface_path_takes_the_side_of_the_via_point():
+    # From the middle of the right side (0.15, 0) to the middle of the top (0, 0.05):
+    # past the top-right corner 0.05 + 0.15 = 0.2 m; the other way round 0.05 + 0.3 + 0.1 + 0.15
+    # = 0.6 m. Together the full outline, 0.8 m.
+    vertices, faces = tube(RECTANGLE, rings=4)
+    start, end = [0.15, 0, 0.5], [0, 0.05, 0.5]
+    short = surface_path(vertices, faces, start, end, normal=UP, via=[0.15, 0.05, 0.5])
+    long = surface_path(vertices, faces, start, end, normal=UP, via=[0, -0.05, 0.5])
+    assert short == pytest.approx(0.2, abs=MM)
+    assert long == pytest.approx(0.6, abs=MM)
+    # Either way round, the points run from start to end.
+    arc = surface_arc(vertices, faces, start, end, normal=UP, via=[0, -0.05, 0.5])
+    assert arc[0].tolist() == start and arc[-1].tolist() == end
+    assert arc[2][1] < 0  # heads down the right side first, towards the bottom edge
+
+
+def test_surface_path_follows_a_concavity():
+    # The notched square from above, corner to corner along the notched side: the side's 0.2 m
+    # plus both 0.05 m walls of the notch = 0.3 m (a tape would bridge it at 0.2 m).
+    notched = np.array(
+        [[0, 0], [0.2, 0], [0.2, 0.2], [0.125, 0.2], [0.125, 0.15], [0.075, 0.15],
+         [0.075, 0.2], [0, 0.2]]
+    )  # fmt: skip
+    vertices, faces = tube(notched - 0.1, rings=4)
+    length = surface_path(
+        vertices, faces, [0.1, 0.1, 0.5], [-0.1, 0.1, 0.5], normal=UP, via=[0, 0.05, 0.5]
+    )
+    assert length == pytest.approx(0.3, abs=MM)
+
+
+def test_surface_path_on_a_tilted_ellipse():
+    # Half of the tilted section of the r = 0.15 cylinder (the 1.01669 m ellipse above), from one
+    # end of the long axis to the other: 1.01669 / 2 = 0.508345 m.
+    vertices, faces = tube(ellipse(0.15, 0.15), z0=-1, z1=1, rings=41)
+    normal = [0, np.sin(np.radians(30)), np.cos(np.radians(30))]
+    end_y = 0.15  # the long axis lies along y; its ends are at y = ±0.15, z = ∓0.15 tan 30°
+    dz = 0.15 * np.tan(np.radians(30))
+    length = surface_path(
+        vertices, faces, [0, end_y, -dz], [0, -end_y, dz], normal=normal, via=[0.15, 0, 0]
+    )
+    assert length == pytest.approx(0.508345, abs=MM)
+
+
+def test_surface_path_with_points_off_the_section_is_an_error():
+    vertices, faces = tube(RECTANGLE, rings=4)
+    with pytest.raises(ValueError, match="not on the section"):
+        surface_path(
+            vertices, faces, [0.15, 0, 0.5], [0, 0.3, 0.5], normal=UP, via=[0.15, 0.05, 0.5]
+        )

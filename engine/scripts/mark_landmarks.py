@@ -30,6 +30,7 @@ UP = np.array([0.0, 0.0, 1.0])
 MIDLINE_M = 0.003  # vertices this close to x = 0 lie on the body's sagittal midline
 SCAN_STEP_M = 0.002
 ARM_SPLIT_DROP_M = 0.03  # a section's width drops by this much where an arm separates
+SHOULDER_BELOW_NECK_M = 0.06  # the shoulder top lies below this; the head's side rises above it
 
 TEMPLATE = BodyInputs(sex="male", height_cm=178, weight_kg=75, body_type="regular")
 BODIES = {
@@ -44,10 +45,16 @@ RULES = {
     "c7": "back midline vertex closest in height to the neck01 bone head (base of the neck)",
     "acromion.L": "highest vertex within 5 cm (horizontally) of the left shoulder joint",
     "acromion.R": "highest vertex within 5 cm (horizontally) of the right shoulder joint",
+    "shoulder.L": "highest vertex within 1.5 cm (horizontally) of the point halfway between the "
+    "neck01 bone head and the left shoulder joint, below the neck head + 6 cm (top of the "
+    "shoulder, where a bib strap lies)",
+    "shoulder.R": "as shoulder.L, right side",
     "armpit.L": "torso-side point where a horizontal section, scanned down from the shoulder "
     "joint, first loses the left arm (its width drops by 3 cm)",
     "armpit.R": "as armpit.L, right side",
     "waist_front": "front-most vertex of Anny's own waist ring (anny.anthropometry)",
+    "waist_back": "vertex of Anny's waist ring on the back closest to the midline",
+    "hip_back_midline": "back midline vertex closest in height to hip_back (the back hip line)",
     "hip_back": "back-most point of the torso section with the largest girth between the crotch "
     "and the waist",
     "crotch": "lowest midline vertex above the knees",
@@ -103,6 +110,12 @@ def find_landmarks(model, vertices, faces, heads):
         joint = heads[f"upperarm01.{side}"]
         near = np.linalg.norm(vertices[:, :2] - joint[:2], axis=1) < 0.05
         found[f"acromion.{side}"] = int(np.where(near)[0][np.argmax(vertices[near, 2])])
+        halfway = (neck + joint) / 2
+        # Below the neck base + 6 cm, or the column would end on the side of the head.
+        near = (np.linalg.norm(vertices[:, :2] - halfway[:2], axis=1) < 0.015) & (
+            vertices[:, 2] < neck[2] + SHOULDER_BELOW_NECK_M
+        )
+        found[f"shoulder.{side}"] = int(np.where(near)[0][np.argmax(vertices[near, 2])])
         elbow = heads[f"lowerarm01.{side}"]
         near = np.linalg.norm(vertices - elbow, axis=1) < 0.05
         found[f"elbow.{side}"] = int(np.where(near)[0][np.argmax(vertices[near, 1])])
@@ -131,6 +144,9 @@ def find_landmarks(model, vertices, faces, heads):
 
     ring = anny.anthropometry.Anthropometry(model).waist_vertex_indices
     found["waist_front"] = int(ring[np.argmin(vertices[ring, 1])])
+    ring = np.asarray(ring)
+    back_half = ring[vertices[ring, 1] > vertices[ring, 1].mean()]  # +Y is the back
+    found["waist_back"] = int(back_half[np.argmin(np.abs(vertices[back_half, 0]))])
 
     knee_z = heads["lowerleg01.L"][2]
     above_knees = np.where(midline & (vertices[:, 2] > knee_z))[0]
@@ -145,6 +161,9 @@ def find_landmarks(model, vertices, faces, heads):
             if perimeter > best[0]:
                 best = (perimeter, loop)
     found["hip_back"] = nearest_vertex(vertices, best[1][np.argmax(best[1][:, 1])])
+    hip_z = vertices[found["hip_back"], 2]
+    back = np.where(midline & (vertices[:, 1] > midline_y(vertices, hip_z)))[0]
+    found["hip_back_midline"] = int(back[np.argmin(np.abs(vertices[back, 2] - hip_z))])
     return found, [int(i) for i in ring]
 
 

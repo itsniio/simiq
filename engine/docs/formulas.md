@@ -105,6 +105,25 @@ Tests (`test_tape.py`), all within 1 mm:
 
 A 512-sided polygon underestimates a circle's perimeter by 2πr (π/512)² / 6 ≈ 0.006 mm at r = 0.15 m, far inside the 1 mm tolerance.
 
+### Surface paths
+
+Lengths follow the skin, like a tape laid along it (`surface_arc`, `surface_path`). A path from `start` to `end` lies in a plane through `start` with a given normal; `via`, a third point on the same section, says which way round the section loop to go.
+
+1. Cut the mesh with the plane (as for girths) and take the loop nearest `start`. `start`, `end` and `via` must each lie within `SECTION_SNAP` = 5 mm of that loop, or the path is an error.
+2. With i, j, k the loop indices nearest `start`, `end`, `via` and n the loop's length: if (k − i) mod n ≤ (j − i) mod n, `via` lies on the forward arc i → j; otherwise the path walks backward from i to j.
+3. The length is the polyline length start → loop[i] → … → loop[j] → end.
+
+Unlike a girth, a path does not bridge concavities: a garment lying on the back or over the shoulder follows the skin there.
+
+Tests (`test_tape.py`), within 1 mm:
+
+| Shape | Path | Hand-computed length |
+|---|---|---|
+| 0.3 × 0.1 m rectangle | right-side middle to top middle, via the top-right corner | 0.05 + 0.15 = 0.2 m |
+| same | same ends, via the bottom | 0.05 + 0.3 + 0.1 + 0.15 = 0.6 m |
+| 0.2 m square with a 0.05 m notch | corner to corner along the notched side | 0.2 + 2 × 0.05 = 0.3 m |
+| r = 0.15 cylinder, plane tilted 30° | one end of the ellipse's long axis to the other | half of 1.01669 = 0.508345 m |
+
 ### Limb profile
 
 Upper-arm and thigh girths are measured on planes perpendicular to the bone axis from `start` to `end`, every `step` (`PROFILE_STEP_CM` = 2 cm in `measure.py`, task 4.3). A girth between two levels is linearly interpolated (`profile_at`); a distance outside the profile is an error rather than an extrapolation.

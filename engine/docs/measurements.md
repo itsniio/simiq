@@ -12,8 +12,11 @@ The indices live in [`data/landmarks.json`](../../data/landmarks.json), generate
 |---|---|
 | `c7` | Back midline vertex closest in height to the `neck01` bone head (base of the neck) |
 | `acromion.L`, `acromion.R` | Highest vertex within 5 cm, horizontally, of the shoulder joint (`upperarm01` head) |
+| `shoulder.L`, `shoulder.R` | Top of the shoulder, where a bib strap lies: highest vertex within 1.5 cm, horizontally, of the point halfway between the `neck01` head and the shoulder joint, and below the `neck01` head + 6 cm (higher, the column reaches the side of the head) |
 | `armpit.L`, `armpit.R` | Scanning horizontal sections down from the shoulder joint, the torso-side point where the arm first separates (the section's width drops by 3 cm) |
 | `waist_front` | Front-most vertex of Anny's own waist ring (`anny.anthropometry`, also stored as `waist_ring`) |
+| `waist_back` | Vertex of Anny's waist ring on the back closest to the midline |
+| `hip_back_midline` | Back midline vertex closest in height to `hip_back`: the back hip line |
 | `hip_back` | Back-most point of the torso section with the largest girth between 3 cm above the crotch and the waist |
 | `crotch` | Lowest midline vertex above the knees |
 | `elbow.L`, `elbow.R` | Back-most vertex within 5 cm of the elbow joint (`lowerarm01` head) |
@@ -37,3 +40,36 @@ The rules are a first version. If a render shows a landmark in the wrong place, 
 ![male 190 cm 95 kg](measurements/landmarks-male-190-95.png)
 ![female 175 cm 58 kg](measurements/landmarks-female-175-58.png)
 ![male 168 cm 72 kg](measurements/landmarks-male-168-72.png)
+
+`shoulder.L/R`, `waist_back` and `hip_back_midline` were added for task 4.4 (run 2026-10-14); the earlier twelve indices did not change.
+
+## Back length and vertical trunk girth (task 4.4)
+
+Both are measured along the skin, as a surface path between landmarks on the posed mesh (`measure.py`, derivation in [formulas.md](formulas.md), "Surface paths"):
+
+- **Back length:** from `c7` down the spine to `hip_back_midline`, in the plane through both that is square to the shoulders' left-right axis (`acromion.L` − `acromion.R`), on the side of `waist_back`.
+- **Vertical trunk girth:** from `shoulder.L` down the front to `crotch` (plane through shoulder, crotch and `waist_front`) and back up from `crotch` to `shoulder.L` (plane through shoulder, crotch and `waist_back`). It is the body counterpart of a bib's front rise + strap + back rise. Where the thighs touch, a section runs down a thigh before it reaches the crotch; within 1 cm of the crotch's height (along the crotch → C7 axis) the path crosses straight to the crotch, as a tape pulled between the legs does.
+
+**Check on 10 bodies** (`scripts/body_lengths.py`, run 2026-10-14; `test_measure.py` asserts the same):
+
+| Body | back standing | back `hoods` | change | trunk standing | trunk `hoods` | change |
+|---|---|---|---|---|---|---|
+| female 158 cm 50 kg | 59.1 | 60.0 | +0.9 | 147.8 | 137.5 | −10.3 |
+| female 165 cm 60 kg | 61.4 | 62.5 | +1.2 | 155.0 | 144.2 | −10.8 |
+| female 170 cm 85 kg | 64.1 | 66.6 | +2.5 | 169.5 | 156.9 | −12.5 |
+| female 175 cm 58 kg | 63.7 | 64.6 | +0.9 | 157.6 | 146.9 | −10.7 |
+| female 182 cm 70 kg | 65.9 | 67.0 | +1.1 | 165.1 | 152.9 | −12.2 |
+| male 168 cm 72 kg | 61.1 | 62.5 | +1.4 | 163.3 | 150.5 | −12.8 |
+| male 175 cm 64 kg | 62.3 | 63.1 | +0.8 | 161.8 | 149.1 | −12.7 |
+| male 178 cm 75 kg | 63.7 | 64.9 | +1.1 | 168.3 | 154.5 | −13.8 |
+| male 185 cm 100 kg | 66.3 | 68.3 | +1.9 | 179.5 | 166.2 | −13.3 |
+| male 195 cm 88 kg | 68.4 | 69.5 | +1.1 | 178.4 | 164.5 | −13.8 |
+
+The back is longer in `hoods` on all ten bodies, as the spec requires. Two things to keep in mind:
+
+- **The back stretches only 1–2.5 cm (2–4 %).** Most of the `hoods` lean is at the hip, and Anny's linear blend skinning stretches the skin over a flexing spine less than real skin does. The calibration (group 8) may need a correction term; the study's tape measurements in the riding position will tell.
+- **The vertical trunk girth shrinks by 10–14 cm.** Folding at the hip shortens the front far more than the back lengthens. For bibs this is the expected direction: the front rise bunches and the back rise and straps take the load.
+
+![female 165 cm 60 kg](measurements/lengths-female-165-60.png)
+![female 170 cm 85 kg](measurements/lengths-female-170-85.png)
+![male 185 cm 100 kg](measurements/lengths-male-185-100.png)
