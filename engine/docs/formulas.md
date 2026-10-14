@@ -204,3 +204,17 @@ Test of a whole garment (`test_every_zone_of_every_size`): the example jersey on
 ### Speed (task 6.5)
 
 Five sizes of a jersey from precomputed measurements take well under the spec's 50 ms (`test_five_sizes_take_under_50_ms`, the mean of 10 runs); the work is a few interpolations per zone and size. Measured 2026-10-14 on the Linux VM: 0.05 ms for the example's three sizes, the mean of 100 calls.
+
+## Size recommendation (task 7.1, `recommend.py`)
+
+**Penalty.** Each size's zones carry a status; `BAND_COST` prices it (ok 0; loose, tight, short, long 1; too_loose, too_tight, too_short 3) and the zone's weight from the garment record scales it:
+
+    penalty(size) = Σ_zones weight_zone × BAND_COST[status_zone]
+
+The size with the lowest penalty is recommended.
+
+**Tie-break.** Among sizes with the same penalty, the one whose zones sit nearest the middle of their ok bands wins: Σ weight × |value − (b + c)/2| / (c − b), where [b, c] is the zone's ok band (strain, or margin in cm) and dividing by its width makes strains and centimetres comparable.
+
+**Explanation.** For the sizes next to the recommended one (one smaller, one larger), every zone whose status differs from the recommended size's is listed as (size, zone, status). The viewer turns these into sentences in each language.
+
+Tests (`test_recommend.py`): the spec's clear case, S with a tight chest (weight 2: penalty 2), M all ok (0), L with a loose chest (2): M, explained by (S, chest, tight) and (L, chest, loose). A too_tight chest and a short back: 2 × 3 + 1 × 1 = 7. Tie: M's chest at 9 % is 4 % from the 5 % centre of a 10 %-wide band, 0.4 widths, × 2 = 0.8; L's back at 3.8 cm is 1.8 cm from the 2 cm centre of a 4 cm band, 0.45; L wins.

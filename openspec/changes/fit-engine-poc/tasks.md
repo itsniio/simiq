@@ -53,7 +53,7 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 
 ## 7. Recommendation and CLI
 
-- [ ] 7.1 (#33) Implement weighted penalty (`BAND_COST`), tie-break and explanation with derivation; verify the clear-case and explanation scenarios
+- [x] 7.1 (#33) Implement weighted penalty (`BAND_COST`), tie-break and explanation with derivation; verify the clear-case and explanation scenarios
 - [ ] 7.2 (#34) Implement confidence by sampling (`SAMPLES`, `CONFIDENCE_THRESHOLD`) with a Jacobian from standing girths to pose measurements; verify the borderline (< 0.6 with alternative) and clear (≥ 0.8) scenarios
 - [ ] 7.3 (#35) Implement the `simiq-fit` CLI commands `measure`, `recommend` and `export-mesh`; verify the examples in `engine/README.md` run as written
 - [ ] 7.4 (#36) Run a team sanity check: predictions for every team member who tried the garments, compared with how they felt; record in `engine/docs/sanity-check.md`; verify obvious mismatches have an explanation or a fix
