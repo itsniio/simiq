@@ -5,6 +5,7 @@ Virtual fitting for tight cycling apparel (jerseys, bib shorts), sold to brands 
 Python 3.12 · uv · Anny + PyTorch (offline only) · FastAPI · pytest · ruff
 TypeScript · pnpm · Vite · Preact · Three.js · vitest · Playwright
 
+    bin/setup                          # tools, OpenSpec 1.14.1, pnpm; --check changes nothing
     openspec validate --all --strict   # the spec must stay valid; CI runs the same, pinned
     cd engine && uv run pytest         # once engine/ exists (fit-engine-poc 1.2)
     cd web && pnpm test                # once web/ exists (tryon-viewer-mvp 3.1)

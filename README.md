@@ -32,6 +32,28 @@ Prečo a ako sme sa rozhodli, je v [simiq-prehlad.md](simiq-prehlad.md) (výskum
 
 Repozitár: [github.com/itsniio/simiq](https://github.com/itsniio/simiq), **verejný**. Pôvodná špecifikácia (zmeny `body-model-spike`, `fit-lab-protocol`, `garment-sim-spike`) zostáva v histórii gitu v commite `5abe63d`. Prototyp z októbra (`body/`, `garment/`) sa nepreberá, staviame od nuly (R12).
 
+## Spustenie (pre každého v tíme)
+
+```
+git clone https://github.com/itsniio/simiq && cd simiq
+bin/setup          # skontroluje nastroje, doinstaluje OpenSpec 1.14.1 a pnpm;
+                   # bin/setup --check len skontroluje a nic nemeni
+claude             # pri prvom otvoreni doverovat priecinku a potvrdit instalaciu pluginov
+/mcp               # v Claude Code sa raz prihlasit do Figma
+```
+
+Po otvorení v Claude Code má každý rovnaké prostredie z `.claude/`:
+
+| Čo | Odkiaľ | Na čo |
+|---|---|---|
+| `/opsx:*` príkazy a OpenSpec skills | `.claude/commands`, `.claude/skills` (v repozitári) | práca so špecifikáciami |
+| `superpowers` (TDD, debugging) | plugin, deklarovaný v `.claude/settings.json` | `engine/`, `api/`, chyby |
+| `agent-skills` (frontend, API, bezpečnosť) | plugin, deklarovaný v `.claude/settings.json` | `web/`, kontrakty, telesné dáta |
+| `figma` (Figma MCP a jeho skills) | plugin, deklarovaný v `.claude/settings.json` | rámce z Figmy, nikdy nie od oka |
+| Hook proti `git add -A`, bez AI podpisov | `.claude/settings.json` | pravidlá z `CLAUDE.md` |
+
+Ktorý skill sa používa na ktorý súbor, je v [CLAUDE.md](CLAUDE.md) v časti „Which tool for which file“.
+
 ## Ako staviame
 
 Pravidlá niio factory z [os.niio.sk](https://github.com/itsniio/os.niio.sk), upravené pre Python a TypeScript. Plné znenie je v [CLAUDE.md](CLAUDE.md), tu je skratka:
