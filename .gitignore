@@ -1,5 +1,7 @@
 # Personal and fit-study data - never commit
 data/private/
+# Public reference datasets (ANSUR II), downloaded by hand, too large for git
+data/external/
 
 # Python
 .venv/
