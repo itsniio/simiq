@@ -22,7 +22,7 @@ from simiq_fit.body import anny_age, height_cm, mass_kg  # noqa: E402
 DOCS = Path(__file__).resolve().parents[1] / "docs" / "measurements"
 CASES = [("male", 190.0), ("female", 175.0)]
 HEAVY = sys.argv[1:] == ["heavy"]
-WEIGHTS = (1.0, 1.25, 1.5, 1.75) if HEAVY else (0.0, -0.25, -0.5, -0.75)
+WEIGHTS = (1.0, 1.25, 1.5, 1.75) if HEAVY else (0.0, -0.05, -0.1, -0.25)
 NAME = "heavy" if HEAVY else "thin"
 MUSCLES = (0.0, 0.25)
 PROPORTIONS = (0.0, 0.5, 1.0)

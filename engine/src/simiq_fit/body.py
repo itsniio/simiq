@@ -29,6 +29,10 @@ FIT_STOP_HEIGHT_CM = 0.05
 FIT_STOP_MASS_SHARE = 0.002
 FIT_MUSCLE_PRIOR_SD = 0.25  # how far muscle may drift from its prior when weight alone saturates
 FIT_START_WEIGHTS = (0.0, 0.25, 0.5, 0.75, 1.0)  # the fit starts from the best of these
+# Anny's weight parameter may extrapolate this far beyond its [0, 1] anchors; the bodies still look
+# human there (scripts/thin_bodies.py renders, formulas.md "Coverage limit"). Height and muscle stay
+# within [0, 1].
+FIT_WEIGHT_RANGE = (-0.1, 1.25)
 
 
 def check_topology(topology: str) -> None:
@@ -58,12 +62,12 @@ def mass_kg(vertices, faces):
 
 
 def load_model(topology: str = ANNY_TOPOLOGY):
-    """Anny with its default 104-bone rig and local-ref pose parameterization."""
+    """Anny with its default 104-bone rig, local-ref poses and extrapolation past its anchors."""
     check_topology(topology)
     import anny
     import torch
 
-    return anny.Anny(topology=topology).to(dtype=torch.float32)
+    return anny.Anny(topology=topology, extrapolate_phenotypes=True).to(dtype=torch.float32)
 
 
 def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
@@ -92,6 +96,8 @@ def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
     def cost(x):
         return float((residuals(x).detach() ** 2).sum())
 
+    low = torch.tensor([0.0, FIT_WEIGHT_RANGE[0], 0.0])
+    high = torch.tensor([1.0, FIT_WEIGHT_RANGE[1], 1.0])
     starts = [torch.tensor([0.5, w, DEFAULT_MUSCLE]) for w in FIT_START_WEIGHTS]
     x = min(starts, key=cost)
     for _ in range(FIT_MAX_STEPS):
@@ -101,7 +107,7 @@ def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
         jacobian = torch.autograd.functional.jacobian(residuals, x)
         step = torch.linalg.lstsq(jacobian, r.unsqueeze(1)).solution.squeeze(1)
         # Freeze a parameter that sits at its bound and is pushed outward; re-solve the rest.
-        stuck = ((x <= 0) & (step > 0)) | ((x >= 1) & (step < 0))
+        stuck = ((x <= low) & (step > 0)) | ((x >= high) & (step < 0))
         if stuck.any():
             free = jacobian * ~stuck
             step = torch.linalg.lstsq(free, r.unsqueeze(1)).solution.squeeze(1) * ~stuck
@@ -109,7 +115,7 @@ def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
         # Backtracking: halve the step until it lowers the squared residuals.
         current = float((r**2).sum())
         for _ in range(FIT_MAX_HALVINGS):
-            candidate = (x - step).clamp(0.0, 1.0)
+            candidate = torch.minimum(torch.maximum(x - step, low), high)
             if cost(candidate) < current:
                 break
             step = step / 2

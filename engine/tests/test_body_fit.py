@@ -3,7 +3,14 @@
 import numpy as np
 import pytest
 
-from simiq_fit.body import BODY_DENSITY_KG_PER_L, DEFAULT_MUSCLE, anny_age, height_cm, mass_kg
+from simiq_fit.body import (
+    BODY_DENSITY_KG_PER_L,
+    DEFAULT_MUSCLE,
+    FIT_WEIGHT_RANGE,
+    anny_age,
+    height_cm,
+    mass_kg,
+)
 from simiq_fit.inputs import BodyInputs
 
 # A unit cube, outward-facing triangles: 1 m tall, 1 m³.
@@ -101,12 +108,15 @@ def test_bmi_range_edges_are_matched(model, height):
     for sex, bmi in (("female", 14), ("female", 40), ("male", 16), ("male", 40)):
         weight = round(bmi * (height / 100) ** 2, 2)
         try:
-            _, got_height, got_mass = built(model, sex=sex, height_cm=height, weight_kg=weight)
+            phenotype, got_height, got_mass = built(
+                model, sex=sex, height_cm=height, weight_kg=weight
+            )
         except ValueError as error:
             misses.append((sex, bmi, height, weight, str(error)))
             continue
         if abs(got_height - height) > 0.5 or abs(got_mass - weight) > 0.02 * weight:
             misses.append((sex, bmi, height, weight, round(got_height, 1), got_mass))
+        assert FIT_WEIGHT_RANGE[0] <= phenotype["weight"] <= FIT_WEIGHT_RANGE[1]
     assert misses == []
 
 
