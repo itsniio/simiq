@@ -4,9 +4,8 @@ name: CI
 # self-hosted runner is not available to public repositories and must never
 # run code from forks.
 #
-# Jobs for engine/ (pytest, ruff, pip-audit) and web/ (vitest, eslint, size
-# budgets, audit) are added by the tasks that create those directories
-# (fit-engine-poc 1.2, tryon-viewer-mvp 3.1).
+# The web/ job (vitest, eslint, size budgets, audit) is added by the task that
+# creates that directory (tryon-viewer-mvp 3.1).
 on:
   pull_request:
   push:
@@ -45,3 +44,37 @@ jobs:
             git ls-files | grep '^data/private/'
             exit 1
           fi
+
+  engine:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      # --locked fails the job when uv.lock does not match pyproject.toml.
+      - name: Install
+        run: uv sync --locked
+
+      - name: Ruff
+        run: uv run ruff check
+
+      - name: Pytest
+        run: uv run pytest
+
+      - name: Audit dependencies
+        run: |
+          uv export --format requirements-txt --no-hashes --no-emit-project > "$RUNNER_TEMP/requirements.txt"
+          uvx pip-audit --requirement "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip
+
+      # Soft target, reported only (CLAUDE.md, Simplicity).
+      - name: Product code size
+        run: |
+          lines=$(find src -name '*.py' -print0 | xargs -0 cat | wc -l)
+          echo "engine/src: $lines lines of the 6,000-line soft target for product code" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "name": "standing",
+  "description": "Anny's rest pose (A-pose, arms about 40 degrees from the body). Standing measurements are taken here.",
+  "provenance": "Draft for the Anny spike (fit-engine-poc 2.2), 2026-10-14. No rotations: the rest pose itself.",
+  "convention": "Anny local-ref pose parameterization. Each rotation is [rx, ry, rz] in degrees about axes aligned with the world in the rest pose, applied as Rz*Ry*Rx relative to the parent bone. World axes: +X body's left, -Y forward, +Z up. Positive rx tips a bone forward.",
+  "rotations_deg": {}
+}

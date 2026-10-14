@@ -6,6 +6,9 @@ data/private/
 __pycache__/
 *.pyc
 
+# Engine spike output (meshes; renders go to engine/docs/)
+engine/out/
+
 # Node and build output
 node_modules/
 dist/

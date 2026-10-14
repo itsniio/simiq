@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "name": "hoods",
+  "description": "Road bike, hands on the hoods. Torso 45 deg from horizontal; left crank at the top of the stroke (most closed hip), right near the bottom.",
+  "provenance": "Draft for the Anny spike (fit-engine-poc 2.2), 2026-10-14. Angles from typical road bike-fit ranges (torso 40-50 deg, closed hip angle 45-55 deg at the top of the stroke, elbows slightly bent), to be adjusted visually and against photos of team members on a trainer.",
+  "convention": "Anny local-ref pose parameterization. Each rotation is [rx, ry, rz] in degrees about axes aligned with the world in the rest pose, applied as Rz*Ry*Rx relative to the parent bone. World axes: +X body's left, -Y forward, +Z up. Positive rx tips a bone forward.",
+  "rotations_deg": {
+    "root": [25, 0, 0],
+    "spine04": [8, 0, 0],
+    "spine03": [7, 0, 0],
+    "spine02": [5, 0, 0],
+    "neck01": [-25, 0, 0],
+    "head": [-15, 0, 0],
+    "upperleg01.L": [-100, 0, 0],
+    "lowerleg01.L": [110, 0, 0],
+    "upperleg01.R": [-55, 0, 0],
+    "lowerleg01.R": [35, 0, 0],
+    "upperarm01.L": [-90, 0, -35],
+    "lowerarm01.L": [-15, 0, 0],
+    "upperarm01.R": [-90, 0, 35],
+    "lowerarm01.R": [-15, 0, 0]
+  }
+}
