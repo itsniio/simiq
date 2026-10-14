@@ -1,0 +1,10 @@
+version: 2
+updates:
+# engine/ (uv) and web/ (npm) are added by the tasks that create them
+# (fit-engine-poc 1.2, tryon-viewer-mvp 3.1); Dependabot fails on a
+# directory without a manifest, so they are not listed yet.
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: weekly
+  open-pull-requests-limit: 10
