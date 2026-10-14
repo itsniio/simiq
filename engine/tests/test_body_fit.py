@@ -9,6 +9,7 @@ from simiq_fit.body import (
     FIT_WEIGHT_RANGE,
     anny_age,
     height_cm,
+    least_squares_step,
     mass_kg,
 )
 from simiq_fit.inputs import BodyInputs
@@ -36,6 +37,16 @@ def test_mass_is_volume_times_density():
 
 def test_mass_does_not_depend_on_face_orientation():
     assert mass_kg(CUBE_VERTICES, CUBE_FACES[:, ::-1]) == pytest.approx(1030.0)
+
+
+def test_least_squares_step_moves_only_free_parameters():
+    import torch
+
+    # J = diag(2, 4, 1), r = (2, 8, 3): the free parameters solve 2Δ₁ = 2 and Δ₃ = 3.
+    jacobian = torch.diag(torch.tensor([2.0, 4.0, 1.0]))
+    residuals = torch.tensor([2.0, 8.0, 3.0])
+    free = torch.tensor([True, False, True])
+    assert least_squares_step(jacobian, residuals, free).tolist() == pytest.approx([1.0, 0.0, 3.0])
 
 
 @pytest.mark.parametrize(

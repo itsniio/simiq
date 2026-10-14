@@ -70,6 +70,17 @@ def load_model(topology: str = ANNY_TOPOLOGY):
     return anny.Anny(topology=topology, extrapolate_phenotypes=True).to(dtype=torch.float32)
 
 
+def least_squares_step(jacobian, residuals, free):
+    """Step Δ minimizing |J Δ − r| over the free parameters only; the others stay at 0."""
+    import torch
+
+    # Solving on the free columns alone: a zeroed column made lstsq return Δ = 0 now and then.
+    solution = torch.linalg.lstsq(jacobian[:, free].double(), residuals.double().unsqueeze(1))
+    step = torch.zeros(len(free), dtype=jacobian.dtype)
+    step[free] = solution.solution[:, 0].to(jacobian.dtype)
+    return step
+
+
 def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
     """Anny phenotype whose standing mesh has the given height and mass."""
     import torch
@@ -105,12 +116,11 @@ def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
         if abs(r[0]) < 1 and abs(r[1]) < 1:
             return {**fixed, "height": float(x[0]), "weight": float(x[1]), "muscle": float(x[2])}
         jacobian = torch.autograd.functional.jacobian(residuals, x)
-        step = torch.linalg.lstsq(jacobian, r.unsqueeze(1)).solution.squeeze(1)
+        step = least_squares_step(jacobian, r, torch.ones(3, dtype=torch.bool))
         # Freeze a parameter that sits at its bound and is pushed outward; re-solve the rest.
         stuck = ((x <= low) & (step > 0)) | ((x >= high) & (step < 0))
         if stuck.any():
-            free = jacobian * ~stuck
-            step = torch.linalg.lstsq(free, r.unsqueeze(1)).solution.squeeze(1) * ~stuck
+            step = least_squares_step(jacobian, r, ~stuck)
         step = step.clamp(-FIT_MAX_PARAMETER_STEP, FIT_MAX_PARAMETER_STEP)
         # Backtracking: halve the step until it lowers the squared residuals.
         current = float((r**2).sum())
