@@ -6,18 +6,22 @@ Defines how fit-study data is captured and protected, how fit ranges are calibra
 
 ## ADDED Requirements
 
-### Requirement: Study record contents
-Each participant record SHALL contain:
-- a pseudonymous id and consent timestamp;
-- the shopper inputs exactly as the participant entered them in the onboarding flow (sex, height, weight, body type, region types, any step-3 measurements), marked as self-reported;
-- tape-measured chest, waist and hip girths and the step-3 measurements, stored separately from the self-reported inputs;
-- the garment and sizes tried;
-- a rating per zone, size and pose on the fit status scale;
-- the size the participant would buy, and free-text comments.
+### Requirement: Study record identity and consent
+Each participant record SHALL carry a pseudonymous id and a consent timestamp; records without consent SHALL NOT be imported.
 
 #### Scenario: Missing consent
 - **WHEN** a record without a consent timestamp is imported
 - **THEN** the import rejects it and names the record
+
+### Requirement: Self-reported and measured inputs kept apart
+Each record SHALL hold the inputs exactly as the participant entered them in the onboarding flow (sex, height, weight, body type, region types, any step-3 measurements), marked as self-reported, and separately the tape-measured chest, waist and hip girths and step-3 measurements.
+
+#### Scenario: Both kinds stored
+- **WHEN** a participant entered chest 96 cm and the tape measured 99 cm
+- **THEN** the record holds 96 as self-reported and 99 as measured
+
+### Requirement: Fit ratings
+Each record SHALL hold the garment and sizes tried, a rating per zone, size and pose on the fit status scale, the size the participant would buy, and free-text comments.
 
 #### Scenario: Several sizes and poses
 - **WHEN** a record has ratings for sizes M and L in poses `standing` and `hoods`
