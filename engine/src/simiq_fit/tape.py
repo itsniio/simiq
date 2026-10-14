@@ -27,7 +27,8 @@ def section_loops(vertices, faces, point, normal) -> list[np.ndarray]:
         links.setdefault(crossed[0], []).append(crossed[1])
         links.setdefault(crossed[1], []).append(crossed[0])
     loops, seen = [], set()
-    for start in links:
+    # Walk open chains from an end (an edge with one neighbour), so each comes out whole.
+    for start in sorted(links, key=lambda edge: len(links[edge])):
         if start in seen:
             continue
         loop, previous, current = [], None, start
@@ -98,6 +99,16 @@ def girth(vertices, faces, point, normal) -> float:
     return hull_perimeter(chosen)
 
 
+def hull_girth(vertices, faces, point, normal) -> float:
+    """Tape girth around everything these faces leave in the plane: one body part's section."""
+    loops = section_loops(vertices, faces, point, normal)
+    if not loops:
+        raise ValueError("the plane does not cut the mesh")
+    u, v = plane_basis(normal)
+    points = np.vstack(loops) - np.asarray(point, float)
+    return hull_perimeter(np.column_stack([points @ u, points @ v]))
+
+
 SECTION_SNAP = 0.005  # a path point farther than this from the section loop is not on it (5 mm)
 
 
@@ -125,12 +136,14 @@ def surface_path(vertices, faces, start, end, normal, via) -> float:
 
 
 def limb_profile(vertices, faces, start, end, step) -> np.ndarray:
-    """Girths perpendicular to the axis start->end, every `step` from the start."""
+    """Girths of these (limb) faces square to the axis start->end, every `step` from the start."""
     start, end = np.asarray(start, float), np.asarray(end, float)
     axis = end - start
     length = np.linalg.norm(axis)
     distances = np.arange(0, length + 1e-9, step)
-    return np.array([girth(vertices, faces, start + d * axis / length, axis) for d in distances])
+    return np.array(
+        [hull_girth(vertices, faces, start + d * axis / length, axis) for d in distances]
+    )
 
 
 def profile_at(profile, step, distance) -> float:

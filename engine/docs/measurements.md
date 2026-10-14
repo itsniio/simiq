@@ -1,6 +1,69 @@
 # Measurements
 
-How every body measurement is defined on the Anny mesh (fit-engine-poc group 4). Task 4.6 completes this file with a figure per measurement; task 3.1 aligns the step-3 definitions with the Figma "i" texts.
+How every body measurement is defined on the Anny mesh (fit-engine-poc group 4); task 3.1 aligns the step-3 definitions with the Figma "i" texts.
+
+## Measurement definitions (task 4.6)
+
+`measure.measure_body(model, phenotype, pose)` returns every measurement below for one pose (`Measurements`: girths, limb profiles and lengths, in cm). All are taken on the posed mesh, so each pose has its own values. Each figure shows a man of 178 cm and 75 kg standing (two views) and in `hoods`; `scripts/measurement_figures.py` draws them.
+
+**Which faces are cut.** A plane at chest height in a riding pose also cuts the arms reaching forward, and a plane across a thigh cuts the buttock. So each girth is taken on one body part's own faces (`body.body_parts`), each vertex belonging to its heaviest bone in Anny's skinning: the **torso** (no arm or leg bones), **torso and legs** (no arm bones), the **left upper arm** (`upperarm01/02.L`) and the **left thigh** (`upperleg01/02.L`). A part's section can be open where its neighbour was attached; the tape then spans the gap (`tape.hull_girth`, formulas.md).
+
+**Torso up** is the unit vector from `crotch` to `c7`. It leans forward with the torso in a riding pose; chest, waist and hip planes are square to it.
+
+### `chest_girth`
+
+The fullest tape girth of the torso faces square to the torso, searched every 1 cm from 1 to 10 cm below the midpoint of `armpit.L` and `armpit.R` (`CHEST_SEARCH_CM`). Over the bust for women, under the arms for both.
+
+![chest girth](measurements/measure-chest_girth.png)
+
+### `waist_girth`
+
+Tape girth of the torso faces square to the torso, through the centre of Anny's own waist ring (`waist_ring`, from `anny.anthropometry`).
+
+![waist girth](measurements/measure-waist_girth.png)
+
+### `hip_girth`
+
+Tape girth of torso and legs square to the torso, level with `hip_back` (the fullest point of the seat), around the section that holds the torso's centre. Torso and legs, because Anny gives the buttocks to the thigh bones. In `hoods` the plane leans with the torso and runs into the top of the flexed thighs: the value there is the seat and hip crease a bib's seat panel covers, not a standing hip girth.
+
+![hip girth](measurements/measure-hip_girth.png)
+
+### `upper_arm_girth`
+
+A profile: tape girths of the left upper arm's faces, square to the bone from the shoulder joint (`upperarm01.L` head) to the elbow joint (`lowerarm01.L` head), every `PROFILE_STEP_CM` = 2 cm. It starts where the arm leaves the torso: level with `armpit.L` on the standing body, kept as a fixed distance along the bone in every pose (`limb_starts`), so a profile index is the same place on the arm in every pose. The engine reads the level where a sleeve opening sits (`tape.profile_at`).
+
+![upper arm girth profile](measurements/measure-upper_arm_girth.png)
+
+### `thigh_girth`
+
+A profile like the upper arm's, on the left thigh's faces from the hip joint (`upperleg01.L` head) to the knee joint (`lowerleg01.L` head), starting level with `crotch` on the standing body. "25 cm below the crotch" is index 12.5 of the profile, interpolated.
+
+![thigh girth profile](measurements/measure-thigh_girth.png)
+
+### `back_length`
+
+C7 down the spine to the back hip line along the skin; defined in "Back length and vertical trunk girth" below.
+
+![back length](measurements/measure-back_length.png)
+
+### `vertical_trunk_girth`
+
+Shoulder top down the front, through the crotch and up the back along the skin; defined in "Back length and vertical trunk girth" below.
+
+![vertical trunk girth](measurements/measure-vertical_trunk_girth.png)
+
+### Check against ANSUR II
+
+Our standing measurements against what ANSUR II predicts for the same sex, height and weight (`scripts/measurement_figures.py data/external/ansur2`, run 2026-10-14; limb girths are the largest of the profile's first 10 cm; ours / ANSUR II, cm):
+
+| Body | chest | waist | hip | upper arm | thigh | vertical trunk |
+|---|---|---|---|---|---|---|
+| man 178 cm 75 kg | 99.6 / 98.8 | 87.7 / 84.8 | 101.3 / 96.1 | 33.8 / 33.2 | 58.4 / 57.8 | 168.3 / 162.1 |
+| woman 165 cm 60 kg | 86.3 / 88.5 | 79.3 / 78.3 | 102.2 / 96.6 | 28.1 / 28.1 | 59.5 / 57.3 | 155.0 / 152.9 |
+| man 185 cm 100 kg | 110.4 / 111.9 | 104.5 / 101.2 | 113.5 / 108.1 | 37.4 / 37.8 | 66.2 / 66.6 | 179.5 / 175.8 |
+| woman 170 cm 85 kg | 100.4 / 104.3 | 101.3 / 97.8 | 115.6 / 112.1 | 32.0 / 34.3 | 68.6 / 68.8 | 169.5 / 166.1 |
+
+Chest, waist and thigh agree within about one ANSUR residual SD ("Uncertainty" below); the upper arm within two, ours relaxed and ANSUR's flexed. Our hip girth runs 3.5–5.6 cm above ANSUR's buttock circumference and our vertical trunk girth 2–6 cm above: the definitions differ (ANSUR measures the buttocks' maximum horizontally on a standing subject; its vertical trunk circumference is taken over the shoulder with the subject standing straight), and Anny's MakeHuman bodies are not soldiers. These offsets are what the study's tape measurements (group 8) will settle; until then the fit ranges are calibrated on our own measurements, so a constant offset does not change a size.
 
 ## Landmarks (task 4.1)
 

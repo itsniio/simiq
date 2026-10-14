@@ -1,7 +1,14 @@
 import numpy as np
 import pytest
 
-from simiq_fit.tape import girth, limb_profile, profile_at, surface_arc, surface_path
+from simiq_fit.tape import (
+    girth,
+    hull_girth,
+    limb_profile,
+    profile_at,
+    surface_arc,
+    surface_path,
+)
 
 UP = np.array([0.0, 0.0, 1.0])
 MM = 0.001
@@ -170,3 +177,19 @@ def test_surface_path_with_points_off_the_section_is_an_error():
         surface_path(
             vertices, faces, [0.15, 0, 0.5], [0, 0.3, 0.5], normal=UP, via=[0.15, 0.05, 0.5]
         )
+
+
+def test_hull_girth_spans_a_gap_in_the_section():
+    # A body part cut out of the mesh (its own faces only) has open sections where neighbouring
+    # parts were attached. The r = 0.15 cylinder with one of its 512 sides removed: the tape
+    # still reads the full 2π · 0.15 = 0.94248 m (the missing side is a 1.8 mm chord).
+    vertices, faces = tube(ellipse(0.15, 0.15), rings=4)
+    n = 512
+    open_faces = np.delete(faces, [2 * n, 2 * n + 1], axis=0)  # the first side, middle ring band
+    assert hull_girth(vertices, open_faces, [0, 0, 0.5], UP) == pytest.approx(0.94248, abs=MM)
+
+
+def test_hull_girth_of_a_plane_missing_the_faces_is_an_error():
+    vertices, faces = tube(ellipse(0.15, 0.15), rings=4)
+    with pytest.raises(ValueError, match="does not cut"):
+        hull_girth(vertices, faces, [0, 0, 2], UP)

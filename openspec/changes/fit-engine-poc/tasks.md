@@ -32,7 +32,7 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 - [x] 4.3 (#18) Implement upper-arm and thigh girth profiles in `PROFILE_STEP_CM` steps with interpolation; verify lookup and interpolation tests on a synthetic tapered limb
 - [x] 4.4 (#19) Implement back length and vertical trunk girth as surface paths; verify back length in `hoods` exceeds `standing` on 10 body shapes
 - [x] 4.5 (#20) Implement per-measurement standard deviations by input set as constants with their sources noted; verify chest SD is smaller when chest girth is given
-- [ ] 4.6 (#21) Document every measurement definition with a figure in `engine/docs/measurements.md`; verify each body-profile measurement has an entry
+- [x] 4.6 (#21) Document every measurement definition with a figure in `engine/docs/measurements.md`; verify each body-profile measurement has an entry
 
 ## 5. Garment and fabric data
 

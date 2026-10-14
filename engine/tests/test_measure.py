@@ -54,3 +54,34 @@ def test_lengths_are_in_an_adult_range(measured):
     for body, poses in measured.items():
         for back, trunk in poses.values():
             assert 50 < back < 75 and 130 < trunk < 200, (body, back, trunk)
+
+
+def test_every_measurement_is_present_in_both_poses():
+    # Spec scenario "Measurements per pose", on one body.
+    from simiq_fit.body import fit_body, load_model
+    from simiq_fit.measure import GIRTHS, LENGTHS, PROFILES, measure_body
+
+    model = load_model()
+    phenotype = fit_body(
+        model, BodyInputs(sex="female", height_cm=165, weight_kg=60, body_type="regular")
+    )
+    result = {pose: measure_body(model, phenotype, pose) for pose in ("standing", "hoods")}
+    for m in result.values():
+        assert set(m.girths_cm) == set(GIRTHS) and set(m.lengths_cm) == set(LENGTHS)
+        assert set(m.profiles_cm) == set(PROFILES)
+        assert all(40 < g < 160 for g in m.girths_cm.values())
+        assert all(len(p) >= 5 and all(15 < g < 90 for g in p) for p in m.profiles_cm.values())
+    assert result["hoods"].lengths_cm["back_length"] > result["standing"].lengths_cm["back_length"]
+
+
+def test_every_measurement_is_documented_with_a_figure():
+    from pathlib import Path
+
+    from simiq_fit.measure import GIRTHS, LENGTHS, PROFILES
+
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    text = (docs / "measurements.md").read_text()
+    for name in GIRTHS + PROFILES + LENGTHS:
+        assert f"### `{name}`" in text, name
+        figure = f"measurements/measure-{name}.png"
+        assert figure in text and (docs / figure).exists(), name

@@ -103,6 +103,8 @@ Tests (`test_tape.py`), all within 1 mm:
 | Cylinder r = 0.15 cut by a plane tilted 30° | ellipse with semi-axes 0.15 and 0.15 / cos 30° = 0.17321: 1.01669 m |
 | Torso r = 0.15 between two arms r = 0.05, one plane | 0.94248 m around the torso point, 2π · 0.05 = 0.31416 m around an arm point |
 
+**One body part's section** (`hull_girth`). A body measurement cuts only one part's faces (measurements.md, "Which faces are cut"), and such a section is open where a neighbouring part was attached. `hull_girth` takes the convex hull of all section points of those faces, which spans the gap as the tape does. Open chains are walked from an end (an edge with one neighbour), so each comes out whole. Test: the r = 0.15 m cylinder with one of its 512 sides removed still reads 2π · 0.15 = 0.94248 m: the hull closes the 1.8 mm gap (2 · 0.15 · sin(π/512)) with the same straight side the polygon had.
+
 A 512-sided polygon underestimates a circle's perimeter by 2πr (π/512)² / 6 ≈ 0.006 mm at r = 0.15 m, far inside the 1 mm tolerance.
 
 ### Surface paths
