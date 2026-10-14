@@ -46,21 +46,33 @@ Tests: the anchors 16, 18 and 64, and 35 and 90 by the formula above (`test_anny
 
 ### Fitting height, weight and muscle
 
-Sex, age and proportions are fixed by the inputs (proportions at 0.5 until task 3.3 maps the body types). Three Anny parameters are fitted, all in [0, 1]: `height` h, `weight` w and `muscle` m, against the given height H and weight M and a prior on muscle, m₀ = `DEFAULT_MUSCLE` = 0.5 (task 3.3 will set m₀ per body type). The residuals, each divided by the size that counts as "close enough":
+Sex, age and proportions are fixed by the inputs (proportions at 0.5 until task 3.3 maps the body types). Three Anny parameters are fitted, all in [0, 1]: `height` h, `weight` w and `muscle` m, against the given height H and weight M and a prior on muscle, m₀ = `DEFAULT_MUSCLE` (task 3.3 will set m₀ per body type). The residuals, each divided by the size that counts as "close enough":
 
     r₁ = (height_cm(mesh) − H) / FIT_STOP_HEIGHT_CM
     r₂ = (mass_kg(mesh) − M) / (FIT_STOP_MASS_SHARE · M)
     r₃ = (m − m₀) / FIT_MUSCLE_PRIOR_SD
 
-Why muscle: the first version fitted only h and w, and a 173.8 cm, 59.3 kg man (BMI 19.6) failed, because at muscle 0.5 Anny's lightest body of that height weighs 64.3 kg. Lowering muscle makes a lighter body of the same height. The prior keeps muscle at m₀ whenever weight alone can match the mass: then all three residuals can be zero, and that is the least-squares minimum. Only when w is at a bound does the mass residual pull m away from m₀; with `FIT_MUSCLE_PRIOR_SD` = 0.25 against a mass scale of 0.2 % of M, the mass wins by orders of magnitude.
+**How weight and muscle interact in Anny.** Anny blends MakeHuman targets defined at muscle 0, 0.5 and 1 and weight 0, 0.5 and 1, linearly between those anchors, so mass has kinks at the anchors. `scripts/body_ranges.py` (run 2026-10-14) shows that muscle changes how far the weight parameter reaches, not just "strength":
 
-Anny is differentiable, so PyTorch gives the 3 × 3 Jacobian J = ∂r/∂(h, w, m). Each step solves J Δ = r in the least-squares sense; a parameter sitting at a bound that Δ would push further out is frozen (its column zeroed) and the rest re-solved. Then
+| Body (height parameter) | weight 0 → 1 at muscle 0 | at muscle 0.25 | at muscle 0.5 |
+|---|---|---|---|
+| Woman, 21, 165 cm | 37 → 96 kg (BMI 13.5–35.0) | 42 → 78 kg (15.4–28.5) | 48 → 62 kg (17.5–22.7) |
+| Man, 35, 190 cm | 58 → 154 kg (BMI 16.1–42.7) | 68 → 121 kg (18.8–33.5) | 78 → 93 kg (21.8–25.8) |
 
-    (h, w, m) ← clamp((h, w, m) − clamp(Δ, ±FIT_MAX_PARAMETER_STEP), 0, 1)
+(proportions 0.5). At low weight more muscle adds mass; at high weight it removes mass. Hence:
 
-starting from (0.5, 0.5, m₀). A step is accepted only if it lowers Σ r²; otherwise it is halved, up to `FIT_MAX_HALVINGS` = 8 times (backtracking line search). Without it, one random input (female, 21 years, 165.3 cm, 72.7 kg) wandered off to 159.5 cm and 63.1 kg: a full Gauss-Newton step overshot where Anny's blend shapes bend sharply. If no halving helps, the fit stops early with an error. The step limit keeps an early, badly linearised step from jumping across the range; the clamp keeps the parameters where Anny interpolates rather than extrapolates. The fit stops when |r₁| < 1 and |r₂| < 1, that is height within 0.05 cm and mass within 0.2 %, ten times tighter than the spec's 0.5 cm and 2 %. After `FIT_MAX_STEPS` = 30 steps without stopping, no Anny body in range reaches the inputs and the fit raises an error with the closest height and mass.
+- **m₀ = 0.25**, between the min and average anchors and away from their kinks. There the weight parameter alone covers roughly BMI 15–34. A first version with m₀ = 0.5 failed for common bodies (a 173.8 cm, 59.3 kg man; a 165.3 cm, 72.7 kg woman), because at m = 0.5 Anny's weight range is only about 5 BMI points wide.
+- **Muscle is fitted too**, with the prior keeping it at m₀ whenever weight alone can match the mass (then all three residuals can be zero, the least-squares minimum). Only when w is at a bound does the mass residual pull m away; with `FIT_MUSCLE_PRIOR_SD` = 0.25 against a mass scale of 0.2 % of M, the mass wins by orders of magnitude.
 
-Tests (`test_body_fit.py`): 172 cm and 68 kg land within 171.5–172.5 cm and 66.64–69.36 kg; 20 seeded random valid inputs land within 0.5 cm and 2 %; muscle stays at 0.5 for 180 cm, 75 kg; the 173.8 cm, 59.3 kg case is matched with muscle below 0.5.
+**Steps.** The fit starts from h = 0.5, m = m₀ and the w in `FIT_START_WEIGHTS` = (0, 0.25, 0.5, 0.75, 1) with the smallest Σ r². PyTorch gives the 3 × 3 Jacobian J = ∂r/∂(h, w, m); each step solves J Δ = r in the least-squares sense, freezes a parameter that sits at a bound and is pushed outward (its column zeroed, the rest re-solved), and limits each change to `FIT_MAX_PARAMETER_STEP` = 0.25:
+
+    (h, w, m) ← clamp((h, w, m) − Δ, 0, 1)
+
+A step is accepted only if it lowers Σ r²; otherwise it is halved, up to `FIT_MAX_HALVINGS` = 8 times (backtracking line search), which keeps a step from overshooting across a kink. The clamp keeps the parameters where Anny interpolates rather than extrapolates. The fit stops when |r₁| < 1 and |r₂| < 1, that is height within 0.05 cm and mass within 0.2 %, ten times tighter than the spec's 0.5 cm and 2 %. If no halving helps or `FIT_MAX_STEPS` = 30 steps pass, no Anny body in range reaches the inputs and the fit raises an error with the closest height, mass and parameters.
+
+**Coverage limit (open question for the founders).** Within [0, 1] Anny reaches about BMI 16–43 for men and 13–37 for women (at muscle 0, proportions 0.5, the tables above). The spec accepts BMI 15–45, so a very heavy woman or a very light man is refused with the error above. Either the spec range narrows, or Anny's extrapolation beyond the anchors is allowed for weight, at the risk of unnatural shapes.
+
+Tests (`test_body_fit.py`): 172 cm and 68 kg land within 171.5–172.5 cm and 66.64–69.36 kg; 20 seeded random inputs with BMI 18–32 land within 0.5 cm and 2 %; muscle stays at m₀ for 180 cm, 75 kg; the two cases that failed with m₀ = 0.5 are matched.
 
 ## Tape measurements (tasks 4.2, 4.3, `tape.py`)
 

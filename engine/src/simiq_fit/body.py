@@ -15,8 +15,10 @@ DEFAULT_AGE = 35
 AGE_YEARS_ANCHORS = (0, 1, 4, 11, 16, 18, 64, 110)
 ANNY_AGE_ANCHORS = (0.0, 0.05, 0.215, 0.415, 0.67, 0.77, 0.83, 1.0)
 
-# Shape parameters fixed until body and region types are mapped (task 3.3).
-DEFAULT_MUSCLE = 0.5
+# Prior on muscle and fixed proportions until body types are mapped (task 3.3). Muscle 0.25 sits
+# between Anny's min (0) and average (0.5) muscle anchors, away from their kinks; there the weight
+# parameter spans about BMI 15-34, at 0.5 only about BMI 17-22 (scripts/body_ranges.py, 2026-10-14).
+DEFAULT_MUSCLE = 0.25
 DEFAULT_PROPORTIONS = 0.5
 
 # Weighted Gauss-Newton fit of Anny's height, weight and muscle (docs/formulas.md, "Body fit").
@@ -26,6 +28,7 @@ FIT_MAX_PARAMETER_STEP = 0.25
 FIT_STOP_HEIGHT_CM = 0.05
 FIT_STOP_MASS_SHARE = 0.002
 FIT_MUSCLE_PRIOR_SD = 0.25  # how far muscle may drift from its prior when weight alone saturates
+FIT_START_WEIGHTS = (0.0, 0.25, 0.5, 0.75, 1.0)  # the fit starts from the best of these
 
 
 def check_topology(topology: str) -> None:
@@ -86,7 +89,11 @@ def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
         prior = (x[2:3] - DEFAULT_MUSCLE) / FIT_MUSCLE_PRIOR_SD
         return torch.cat([(measure(x) - target) / scale, prior])
 
-    x = torch.tensor([0.5, 0.5, DEFAULT_MUSCLE])
+    def cost(x):
+        return float((residuals(x).detach() ** 2).sum())
+
+    starts = [torch.tensor([0.5, w, DEFAULT_MUSCLE]) for w in FIT_START_WEIGHTS]
+    x = min(starts, key=cost)
     for _ in range(FIT_MAX_STEPS):
         r = residuals(x).detach()
         if abs(r[0]) < 1 and abs(r[1]) < 1:
@@ -100,10 +107,10 @@ def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
             step = torch.linalg.lstsq(free, r.unsqueeze(1)).solution.squeeze(1) * ~stuck
         step = step.clamp(-FIT_MAX_PARAMETER_STEP, FIT_MAX_PARAMETER_STEP)
         # Backtracking: halve the step until it lowers the squared residuals.
-        cost = float((r**2).sum())
+        current = float((r**2).sum())
         for _ in range(FIT_MAX_HALVINGS):
             candidate = (x - step).clamp(0.0, 1.0)
-            if float((residuals(candidate).detach() ** 2).sum()) < cost:
+            if cost(candidate) < current:
                 break
             step = step / 2
         else:

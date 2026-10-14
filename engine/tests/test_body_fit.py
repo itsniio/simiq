@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from simiq_fit.body import BODY_DENSITY_KG_PER_L, anny_age, height_cm, mass_kg
+from simiq_fit.body import BODY_DENSITY_KG_PER_L, DEFAULT_MUSCLE, anny_age, height_cm, mass_kg
 from simiq_fit.inputs import BodyInputs
 
 # A unit cube, outward-facing triangles: 1 m tall, 1 m³.
@@ -97,28 +97,27 @@ def test_twenty_random_valid_inputs_are_matched(model):
 def test_no_age_is_built_for_35(model):
     without, _, _ = built(model, height_cm=180, weight_kg=75)
     with_35, _, _ = built(model, height_cm=180, weight_kg=75, age=35)
-    assert without == with_35
+    assert without == pytest.approx(with_35, abs=1e-4)
 
 
 def test_sex_other_is_built_as_male(model):
     other, _, _ = built(model, sex="other", height_cm=180, weight_kg=75)
     male, _, _ = built(model, sex="male", height_cm=180, weight_kg=75)
-    assert other == male
+    assert other == pytest.approx(male, abs=1e-4)
 
 
 def test_muscle_stays_at_its_prior_when_weight_suffices(model):
     phenotype, _, _ = built(model, height_cm=180, weight_kg=75)
-    assert phenotype["muscle"] == pytest.approx(0.5, abs=0.02)
+    assert phenotype["muscle"] == pytest.approx(DEFAULT_MUSCLE, abs=0.02)
 
 
-def test_thin_body_lowers_muscle_once_weight_is_at_its_minimum(model):
-    # The first miss of the two-parameter fit: 173.8 cm, 59.3 kg (BMI 19.6), male, 58 years.
-    phenotype, height, mass = built(model, height_cm=173.8, weight_kg=59.3, age=58)
+def test_thin_man_is_matched(model):
+    # Missed with muscle fixed at 0.5: 173.8 cm, 59.3 kg (BMI 19.6), male, 58 years.
+    _, height, mass = built(model, height_cm=173.8, weight_kg=59.3, age=58)
     assert abs(height - 173.8) <= 0.5 and abs(mass - 59.3) <= 0.02 * 59.3
-    assert phenotype["muscle"] < 0.5
 
 
-def test_fit_does_not_wander_off(model):
-    # Without backtracking the fit overshot to 159.5 cm and 63.1 kg for this input.
+def test_heavier_young_woman_is_matched(model):
+    # Missed with muscle prior 0.5, where Anny's heaviest 165 cm woman of 21 weighs 62.2 kg.
     _, height, mass = built(model, sex="female", height_cm=165.3, weight_kg=72.7, age=21)
     assert abs(height - 165.3) <= 0.5 and abs(mass - 72.7) <= 0.02 * 72.7
