@@ -145,3 +145,35 @@ A measurement predicted from height and weight (SD a) and the shopper's own tape
 σ is below both a and b, so entering a measurement always narrows the SD. The SDs themselves and their sources are in [measurements.md](measurements.md), "Uncertainty".
 
 Tests (`test_uncertainty.py`): a = 3, b = 4 gives 1/√(25/144) = 12/5 = 2.4; a 100 cm chest gives b = 5 cm and σ = (1/p² + 1/25)^(−1/2) with p the predicted chest SD; the other measurements keep their predicted SDs.
+
+## Fit of a girth or loop zone (tasks 6.1, 6.2, `fit.py`, `fabric.py`)
+
+### Strain and ease
+
+A garment of relaxed circumference C_garment worn on a body of girth C_body (the same zone, in the pose) is stretched by
+
+    ε = C_body / C_garment − 1
+
+ε > 0: the fabric is stretched. ε ≤ 0: the garment is loose, with **ease** = −ε · C_garment = C_garment − C_body cm of spare fabric round the body.
+
+Tests (`test_fit.py`), the spec scenarios: 96 / 84 − 1 = 0.142857 → 14.3 %; 80 / 84 − 1 = −0.047619 → −4.8 %, ease 0.047619 · 84 = 4.0 cm.
+
+### Tension
+
+A strip test pulls a specimen of width w and records force F against strain (`Curve`). The fabric's tension, force per unit width, at strain ε is
+
+    T(ε) = F(ε) / w      [N/m]
+
+with F linearly interpolated between the measured points. Beyond the curve's last point there is no measurement, so nothing is extrapolated: the zone is flagged `out_of_curve` and has no tension or pressure.
+
+Test: the example knit's course curve has 2.0 N at 10 % and 4.5 N at 20 %; at 15 %, F = 3.25 N and on a 50 mm strip T = 3.25 / 0.05 = 65 N/m.
+
+### Pressure (Laplace's law)
+
+A stretched tube of tension T around a cylinder of radius r presses on it with
+
+    P = T / r,   r = C_body / 2π
+
+(the hoop-stress form of Laplace's law; design "Context" and `simiq-prehlad.md` cite the study, https://pmc.ncbi.nlm.nih.gov/articles/PMC8401858/, where this with measured stretch curves predicted pressure on test cylinders mostly within 5 %). The body is not a cylinder, so P is only compared between sizes of the same garment on the same body, where the shape error is the same for all: **relative pressure** = P / the largest P among the sizes (`relative_pressures`). It is never shown as an absolute value.
+
+Tests: at 15 % on a 96 cm girth, r = 0.96 / 2π = 0.152789 m and P = 65 / 0.152789 = 425.42 Pa. Sizes M (84 cm) and L (88 cm) on a 96 cm chest: strains 14.29 % and 9.09 %; F = 2.0 + 0.4286 · 2.5 = 3.0714 N and 0.9091 · 2.0 = 1.8182 N, so T = 61.43 and 36.36 N/m; the radius is the same, so relative pressure is 1.0 for M and 36.36 / 61.43 = 0.592 for L. A strain of 120 / 75 − 1 = 60 % lies beyond the curve's 50 % and is flagged.
