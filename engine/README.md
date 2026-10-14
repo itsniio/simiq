@@ -42,3 +42,15 @@ uv run simiq-fit schema                   # rewrite data/schema/*.schema.json af
 ```
 
 `validate-data` prints each error with its file and field, warnings for points of measure that do not grow from size to size, and exits with 1 if any file is invalid. A garment whose `fabrics` names a fabric id not among the checked files is an error.
+
+## Measuring a body (task 7.3)
+
+```sh
+uv run simiq-fit measure --sex female --height-cm 165 --weight-kg 60
+uv run simiq-fit measure --sex male --height-cm 181 --weight-kg 78 --chest-cm 98 --pose hoods --pose drops
+uv run simiq-fit export-mesh --sex male --height-cm 181 --weight-kg 78 --pose hoods --out out/body-hoods.glb
+```
+
+`measure` prints JSON: for each pose (default `standing` and `hoods`) the girths, limb profiles and lengths in cm (`docs/measurements.md`), and the SD of each measurement for the inputs given (`uncertainty.py`). Optional step-3 measurements: `--chest-cm`, `--waist-cm`, `--biceps-cm`, `--thigh-cm`, `--calf-cm`, `--inseam-cm`, `--outseam-cm`; also `--body-type` and `--age`. `export-mesh` writes the posed body as glTF binary for any viewer. Invalid inputs exit with 2 and the reason. Nothing is logged: body data goes to stdout or the given file only.
+
+`recommend` follows once the fit ranges and the comfort tension are set from the team's try-ons (tasks 6.3, 6.4).

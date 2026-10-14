@@ -1,13 +1,17 @@
 """The simiq-fit command line (design D10). Commands are added as their tasks land."""
 
 import argparse
+import contextlib
 import json
+import os
 import sys
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from simiq_fit.garment import DATA, Fabric, Garment, grading_warnings, write_schemas
+from simiq_fit.inputs import BodyInputs
+from simiq_fit.poses import POSES
 
 DATA_FOLDERS = ("garments", "fabrics", "examples")
 
@@ -62,6 +66,79 @@ def schema(args) -> int:
     return 0
 
 
+def body_inputs(args) -> BodyInputs:
+    fields = {name: getattr(args, name) for name in BodyInputs.model_fields if hasattr(args, name)}
+    return BodyInputs(**{k: v for k, v in fields.items() if v is not None})
+
+
+@contextlib.contextmanager
+def stdout_to_stderr():
+    """Send everything written to stdout, by Python or native libraries, to stderr meanwhile.
+
+    Warp, which Anny uses, prints a banner on stdout from native code; the JSON on stdout must stay
+    clean for whoever reads it.
+    """
+    sys.stdout.flush()
+    saved = os.dup(1)
+    os.dup2(2, 1)
+    try:
+        yield
+    finally:
+        sys.stdout.flush()
+        os.dup2(saved, 1)
+        os.close(saved)
+
+
+def built_body(args):
+    """Anny and the fitted phenotype for the command-line inputs (slow: builds Anny)."""
+    from simiq_fit.body import fit_body, load_model
+
+    model = load_model()
+    return model, fit_body(model, body_inputs(args))
+
+
+def measure_command(args) -> int:
+    """Measurements in each pose and their SDs, as JSON on stdout (body data is never logged)."""
+    from simiq_fit.measure import measure_body
+    from simiq_fit.uncertainty import measurement_sds_cm
+
+    inputs = body_inputs(args)
+    with stdout_to_stderr():
+        model, phenotype = built_body(args)
+        poses = {pose: measure_body(model, phenotype, pose).model_dump() for pose in args.pose}
+    print(json.dumps({"poses": poses, "sds_cm": measurement_sds_cm(inputs)}, indent=2))
+    return 0
+
+
+def export_mesh(args) -> int:
+    """The posed body as a glTF binary file for any viewer."""
+    import trimesh
+
+    from simiq_fit.body import pose_body
+    from simiq_fit.poses import load_pose
+
+    rotations = load_pose(args.pose[0])
+    with stdout_to_stderr():
+        model, phenotype = built_body(args)
+        posed = pose_body(model, phenotype, rotations)
+    trimesh.Trimesh(posed["vertices"], posed["faces"], process=False).export(args.out)
+    print(f"wrote {args.out}")
+    return 0
+
+
+def add_body_arguments(parser):
+    parser.add_argument("--sex", required=True, choices=["female", "male", "other"])
+    parser.add_argument("--height-cm", dest="height_cm", type=float, required=True)
+    parser.add_argument("--weight-kg", dest="weight_kg", type=float, required=True)
+    parser.add_argument("--body-type", dest="body_type", default="regular",
+                        choices=["slim", "regular", "athletic"])  # fmt: skip
+    parser.add_argument("--age", type=int)
+    for name in ("chest", "waist", "biceps", "thigh", "calf", "inseam", "outseam"):
+        parser.add_argument(f"--{name}-cm", dest=f"{name}_cm", type=float)
+    parser.add_argument("--pose", action="append", choices=POSES,
+                        help="repeat for several; default standing and hoods")  # fmt: skip
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="simiq-fit")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -71,8 +148,21 @@ def main(argv: list[str] | None = None) -> int:
     export = commands.add_parser("schema", help="write the JSON Schema of garment and fabric")
     export.add_argument("--out", default=str(DATA / "schema"))
     export.set_defaults(run=schema)
+    measuring = commands.add_parser("measure", help="body measurements in each pose, as JSON")
+    add_body_arguments(measuring)
+    measuring.set_defaults(run=measure_command)
+    mesh = commands.add_parser("export-mesh", help="the posed body as glTF (.glb)")
+    add_body_arguments(mesh)
+    mesh.add_argument("--out", required=True)
+    mesh.set_defaults(run=export_mesh)
     args = parser.parse_args(argv)
-    return args.run(args)
+    if hasattr(args, "pose"):
+        args.pose = args.pose or ["standing", "hoods"]
+    try:
+        return args.run(args)
+    except ValueError as error:  # invalid inputs, unknown pose, unreachable body
+        print(f"error: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
