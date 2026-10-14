@@ -27,4 +27,10 @@ Anny downloads `noncommercial.zip` (SMPL / SMPL-X conversion data) only when an 
 
 Declared by Anny 0.6: torch, roma, numpy, pyyaml, pillow, requests, safetensors, trimesh, warp-lang. Declared by `engine/`: anny, torch, numpy, trimesh; dev only: pytest, ruff, matplotlib.
 
-The authoritative list with versions is generated from the installed metadata by the spike run in [`anny-spike/dependency-licenses.md`](anny-spike/dependency-licenses.md). Status: **unverified** until that file is committed from a real run and read for GPL entries.
+The authoritative list with versions is generated from the installed metadata by the spike run: [`anny-spike/dependency-licenses.md`](anny-spike/dependency-licenses.md) (run 2026-10-14, macOS arm64).
+
+Read on 2026-10-14: **no GPL or AGPL package is installed.** Licenses found: Apache-2.0 (anny, torch, warp-lang, requests, safetensors), BSD (numpy, roma, idna, networkx, sympy and others), MIT (trimesh, pyyaml, urllib3 and others), MIT-CMU (pillow), PSF (matplotlib, dev only; typing_extensions), MPL-2.0 (certifi).
+
+- certifi (MPL-2.0) arrives through requests, which Anny uses only to download the non-commercial data we never request. MPL-2.0 is file-level copyleft: it applies to changes of certifi's own files, which we do not make.
+- anny's own metadata has no license field; its repository states Apache-2.0 (`LICENSE`).
+- After the spike run, `~/.cache/anny/noncommercial/` does not exist: nothing SMPL-derived was downloaded.

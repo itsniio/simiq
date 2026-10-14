@@ -11,9 +11,9 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 ## 2. Anny spike (go/no-go)
 
 - [ ] 2.1 (#5) Install Anny, build a body from phenotype parameters and export it as glTF; verify the file opens in a glTF viewer
-- [ ] 2.2 (#6) Draft pose files `data/poses/standing.json`, `hoods.json`, `drops.json`; verify the posed meshes render for 5 different body shapes
+- [x] 2.2 (#6) Draft pose files `data/poses/standing.json`, `hoods.json`, `drops.json`; verify the posed meshes render for 5 different body shapes
 - [ ] 2.3 (#7) Inspect hip, crotch and shoulder deformation in `hoods` and `drops` on those 5 shapes and write `engine/docs/anny-spike.md` with screenshots and an explicit go/no-go (or fallback from design D3); verify the team has signed off on the decision
-- [ ] 2.4 (#8) Record the license of every Anny asset and dependency used in `engine/docs/licenses.md` and confirm no SMPL-derived topology is loaded; verify by a test that fails if the SMPL-X topology option is enabled
+- [x] 2.4 (#8) Record the license of every Anny asset and dependency used in `engine/docs/licenses.md` and confirm no SMPL-derived topology is loaded; verify by a test that fails if the SMPL-X topology option is enabled
 
 ## 3. Body profile
 
