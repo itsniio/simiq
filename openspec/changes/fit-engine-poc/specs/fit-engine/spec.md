@@ -40,7 +40,7 @@ For girth zones under tension the engine SHALL compute pressure from fabric tens
 - **THEN** the zone is flagged `out_of_curve` and no extrapolated pressure is reported
 
 ### Requirement: Length margin accounts for stretch
-For length zones the margin SHALL include how far the garment can stretch along the measurement at its fabric's configured comfort tension.
+For length zones the margin SHALL include how far the garment can stretch along the measurement before its fabric reaches the comfort tension constant.
 
 #### Scenario: Back length covered by stretch
 - **WHEN** the garment back length is 60 cm, the fabric reaches comfort tension at 5 % wale strain, and the body back length in the pose is 62 cm
@@ -58,7 +58,7 @@ The engine SHALL recommend the size with the lowest weighted penalty across zone
 - **THEN** the explanation lists zone `chest` with status `loose` for size L
 
 ### Requirement: Confidence and alternative size
-The engine SHALL report a confidence between 0 and 1 derived from body-measurement uncertainty, and SHALL name an alternative size when confidence is below the configured threshold (default 0.6).
+The engine SHALL report a confidence between 0 and 1 derived from body-measurement uncertainty, and SHALL name an alternative size when confidence is below 0.6.
 
 #### Scenario: Borderline body
 - **WHEN** the body lies at the boundary between M and L
@@ -69,7 +69,7 @@ The engine SHALL report a confidence between 0 and 1 derived from body-measureme
 - **THEN** confidence is at least 0.8 and no alternative is named
 
 ### Requirement: Pose used for recommendation
-The recommendation SHALL be computed in the garment's configured riding pose (default `hoods`), and results for `standing` SHALL also be available for comparison. The result SHALL state the pose used.
+The recommendation SHALL be computed in pose `hoods` unless another pose is requested, and results for `standing` SHALL also be available for comparison. The result SHALL state the pose used.
 
 #### Scenario: Default pose
 - **WHEN** a recommendation is requested without a pose

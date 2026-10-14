@@ -8,7 +8,10 @@
   - Laplace's law with measured fabric stretch curves predicted pressure well.
   - SMPL-family body models are non-commercial. Anny is Apache-2.0 code with CC0 assets.
 - Team of 3–4 with about five weeks to demo day. Python for the engine (Anny runs on PyTorch), TypeScript for web.
-- No brand data yet. The first garments are bought and measured by the team, so the contract must accept team-measured data as well as brand tech packs.
+- Pilot brand is Isadore (founder ruling 2026-10-14). Until their tech packs arrive, the first garments are Isadore pieces bought and measured by the team, so the contract must accept team-measured data as well as brand tech packs.
+- Fresh build (founder ruling 2026-10-14): the early-October prototype is not carried over; nothing is copied from it.
+- Inputs follow the Figma onboarding flow the team designed: sex, height, weight and a body silhouette; age, region silhouettes and girths are optional.
+- The niio factory rules apply (`CLAUDE.md`): constants before settings, a derivation and a hand-computed test for every formula, `engine/` is `core` radius.
 
 ## Goals / Non-Goals
 
@@ -44,10 +47,25 @@ docs/           guides: measuring garments, fit-study protocol, integration
 ### D2. Body: Anny with phenotype fitting by optimization
 
 - Inputs map to Anny phenotype parameters (sex, age, height, weight, muscle, proportions) plus local shape parameters.
+- Inputs are the Figma onboarding flow's (file NIIO, page `simik`, frames in `tryon-viewer-mvp/design.md`): step 1 sex, weight, height, body type; step 2 arm, torso and leg types; step 3 measurements.
+- The body type sets the starting point and a prior on the muscle and proportion parameters: `slim`, `regular` and `athletic` are three fixed parameter offsets, chosen so that at equal height and weight `athletic` has the larger chest and shoulders. Arm, torso and leg types add offsets on their region's local parameters.
+- Sex `other` is built as `male`, as the designer's note in Figma says ("použije sa male body"), until the founders rule.
+- Without an age the body is built for 35 years (`DEFAULT_AGE`); the flow does not ask for age.
 - The parameters are fitted by gradient descent, since Anny is differentiable in PyTorch. Loss terms:
   - height: tolerance 0.5 cm;
-  - mass, computed as mesh volume × body density. Density is configurable, starts at 1.03 kg/L and is tuned against study participants;
-  - optional chest, waist and hip girths with tolerance 1.0 cm.
+  - mass, computed as mesh volume × `BODY_DENSITY_KG_PER_L` = 1.03. A constant; retuning it against study participants is its own PR with before/after numbers;
+  - each step-3 measurement that is given, tolerance 1.0 cm, measured on the mesh the same way the flow's "i" help tells the shopper to measure it.
+- Step-3 ranges (cm), provisional until task 3.1 pins each definition from the Figma "i" texts:
+
+| Field | Range | Field | Range |
+|---|---|---|---|
+| `chest_cm` | 60–160 | `thigh_cm` | 35–90 |
+| `waist_cm` | 50–160 | `calf_cm` | 25–60 |
+| `shoulders_cm` | per 3.1 | `inseam_cm` | 55–100 |
+| `arm_length_cm` | per 3.1 | `outseam_cm` | 75–130 |
+| `biceps_cm` | 18–60 | | |
+
+- The flow has no hip measurement; the hip girth bib shorts need is estimated from the inputs (open question for the designer).
 - Rejected alternative: a direct regression from inputs to sliders. It is faster but less faithful when girths are given. A regression of this kind is still used later as the serving surrogate.
 - Anny's optional SMPL-X topology is not used, because it is non-commercial.
 
@@ -107,7 +125,7 @@ Pydantic models are the source of truth. JSON Schema is exported for TypeScript 
   - If ε ≤ 0, report ease = −ε · C_garment in cm.
   - If ε > 0, tension T = F(ε) / w. F comes from the fabric curve by linear interpolation and is not extrapolated: values beyond the curve are flagged `out_of_curve`. w is the specimen width.
   - Pressure P = T / r with r = C_body / 2π (Laplace's law). It is exposed only as a value relative to other sizes.
-- **Length zones:** margin = L_garment · (1 + ε_allow) − L_body. ε_allow is the strain at which the wale curve reaches the configured comfort tension. A negative margin means the garment rides up or is too short.
+- **Length zones:** margin = L_garment · (1 + ε_allow) − L_body. ε_allow is the strain at which the wale curve reaches `COMFORT_TENSION_N_PER_M`, one constant set from the team's own try-ons (task 6.3). A negative margin means the garment rides up or is too short.
 - Rejected alternative: per-vertex cloth simulation. It is slower, harder to validate, and the evidence says it does not track real pressure.
 
 ### D7. Fit ranges per brand and fit block
@@ -124,7 +142,7 @@ Pydantic models are the source of truth. JSON Schema is exported for TypeScript 
   - Sample K = 64 measurement vectors around the body. The standard deviations depend on which inputs were given (body-profile).
   - Deviations in standing girths propagate to pose measurements through a Jacobian computed once per body with autograd, so each sample does not need a new body fit.
   - Confidence = share of samples whose best size equals the recommendation.
-  - Alternative = the next most frequent size when confidence < 0.6 (configurable).
+  - Alternative = the next most frequent size when confidence < `CONFIDENCE_THRESHOLD` = 0.6.
 - **Explanation:** the zones whose status differs between the recommended size and its neighbors, as structured data. Wording is localized in the viewer.
 
 ### D9. Calibration and evaluation
@@ -134,9 +152,11 @@ Pydantic models are the source of truth. JSON Schema is exported for TypeScript 
 - **Report** (markdown + CSV, aggregate only):
   - N and hit rate with Wilson 95 % CI;
   - hit-or-alternative rate;
-  - baseline hit rate of the brand chart, both from tape girths and from girths estimated from height and weight;
+  - baseline hit rate of the brand chart, both from tape girths and from girths estimated from the required inputs;
   - per-zone agreement;
-  - standing-girth error with and without girth inputs.
+  - standing-girth error with and without girth inputs, and with and without the silhouette pick;
+  - predicted versus measured strain where dot-grid data exists, otherwise "unverified".
+- **Dot grid (optional):** only on a garment the team owns, because the marker stays on the fabric. The extra Isadore jersey bought for strip tests gets a 3 cm dot grid first; team members wear it standing and on a trainer in `hoods`; photos with a scale reference give local strain in camera-facing zones (chest, back, upper arm). Then the jersey is cut for strip tests. Borrowed garments are never marked.
 
 ### D10. Interfaces
 
@@ -148,6 +168,82 @@ Pydantic models are the source of truth. JSON Schema is exported for TypeScript 
   - `validate-data`: checks garment and fabric files;
   - `calibrate` and `evaluate`: run on study data.
 - The recommendation JSON shape is the payload that `fit-api` returns, so the CLI and the API cannot drift apart.
+
+## Program design
+
+File placement, the types that cross module boundaries, and the constants. Only `body.py` imports Anny or PyTorch, so the serving path in `tryon-viewer-mvp` can run without them.
+
+```
+engine/
+  pyproject.toml          package simiq_fit, console script simiq-fit
+  src/simiq_fit/
+    inputs.py             BodyInputs + validation ranges
+    body.py               build_body(inputs) -> Body          (Anny, PyTorch)
+    poses.py              load_pose(name) -> Pose; POSES = ("standing", "hoods", "drops")
+    landmarks.py          vertex indices on the Anny template, loaded from data/landmarks.json
+    tape.py               girth(), limb_profile(), surface_path()   (pure geometry, numpy)
+    measure.py            measure(body, pose) -> Measurements; measurement_sds(inputs) -> dict
+    garment.py            Garment, Size, Zone, Fabric, SizeChart + load, validate, JSON Schema export
+    fabric.py             tension(fabric, direction, strain) -> N/m; comfort_strain(fabric, direction)
+    fit.py                zone_fit(...) -> ZoneFit; size_fit(...) -> list[ZoneFit]
+    recommend.py          recommend(...) -> Recommendation
+    study.py              load_study(path) -> list[Participant]; delete_participant(path, pid)
+    calibrate.py          fit_ranges(participants, garment) -> FitRanges
+    evaluate.py           evaluate(participants, garments) -> Report
+    cli.py                measure | recommend | export-mesh | validate-data | calibrate | evaluate
+  tests/                  test_<module>.py; spec scenarios as hand-computed tests
+  docs/                   formulas.md (derivations), measurements.md, anny-spike.md, licenses.md
+data/
+  poses/  landmarks.json  garments/  fabrics/  fit-ranges/      (versioned, non-personal)
+  private/                                                       (gitignored study data)
+```
+
+```python
+# inputs.py — the Figma onboarding flow, one field per control
+Sex = Literal["female", "male", "other"]
+Build = Literal["slim", "regular", "athletic"]
+class BodyInputs(BaseModel):
+    sex: Sex; height_cm: float; weight_kg: float; body_type: Build           # step 1
+    arms: Build | None = None; torso: Build | None = None; legs: Build | None = None  # step 2
+    chest_cm: float | None = None; waist_cm: float | None = None             # step 3, upper
+    shoulders_cm: float | None = None; arm_length_cm: float | None = None
+    biceps_cm: float | None = None
+    thigh_cm: float | None = None; calf_cm: float | None = None              # step 3, lower
+    inseam_cm: float | None = None; outseam_cm: float | None = None
+    age: int | None = None                                                   # not in the flow
+
+# measure.py
+class Measurements(BaseModel):
+    pose: str
+    girths_cm: dict[str, float]               # chest_girth, waist_girth, hip_girth
+    profiles_cm: dict[str, list[float]]       # upper_arm_girth, thigh_girth; 2 cm steps
+    lengths_cm: dict[str, float]              # back_length, vertical_trunk_girth
+
+# fit.py
+Status = Literal["too_loose", "loose", "ok", "tight", "too_tight", "too_short", "short", "long"]
+class ZoneFit(BaseModel):
+    zone: str; kind: Literal["girth", "loop", "length"]; status: Status
+    strain: float | None; ease_cm: float | None; margin_cm: float | None
+    relative_pressure: float | None; flags: list[str]  # out_of_curve, default_ranges
+
+# recommend.py
+class Recommendation(BaseModel):
+    size: str; confidence: float; alternative: str | None; pose: str
+    sizes: dict[str, list[ZoneFit]]; explanation: list[tuple[str, str, Status]]  # size, zone, status
+    engine_version: str; data_version: str
+```
+
+Constants (one place each, changed only by a PR with before/after evaluation numbers):
+
+| Constant | Value | Module |
+|---|---|---|
+| `BODY_DENSITY_KG_PER_L` | 1.03 | body.py |
+| `DEFAULT_AGE` | 35 | body.py |
+| `CONFIDENCE_THRESHOLD` | 0.6 | recommend.py |
+| `SAMPLES` | 64 | recommend.py |
+| `BAND_COST` | ok 0, loose/tight/short/long 1, too_* 3 | recommend.py |
+| `COMFORT_TENSION_N_PER_M` | set in task 6.3 from team try-ons | fabric.py |
+| `PROFILE_STEP_CM` | 2 | measure.py |
 
 ## Risks / Trade-offs
 
@@ -166,5 +262,8 @@ Greenfield; nothing to migrate. Data files carry `schema_version` so later chang
 ## Open Questions
 
 - Exact joint angles of `hoods` and `drops`. These are data files and can change without touching the specs.
-- Final default body density after tuning (a configuration value).
+- The value of `BODY_DENSITY_KG_PER_L` after the first study round (a constant; the approach does not change).
+- How each step-3 measurement is defined (the Figma "i" texts; task 3.1 pins them with the designer). The mechanism in D2 does not change, only the measuring path on the mesh.
+- Whether `other` stays built as `male` (designer's note in Figma; founders to confirm). It changes one line in `body.py`.
+- Whether the flow adds a hip measurement for bib shorts (designer). It would add one optional field.
 - Whether an aero/time-trial pose is needed. That would only add a preset file.

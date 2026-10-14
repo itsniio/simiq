@@ -16,7 +16,7 @@
     - OAuth per installation; API tokens are valid for 30 minutes.
     - `/template-include` for code injection; webhooks such as `order:create`.
   - **WooCommerce:** a WordPress plugin; webhooks signed with HMAC-SHA256; refunds via the REST API.
-- The pilot brand's platform decides which adapter is built first. The others follow when a customer needs them.
+- The pilot brand, Isadore, runs a custom PHP (Nette) shop and uses the snippet. The first customer on one of these platforms decides which adapter is built first; the others follow when a customer needs them.
 
 ## Goals / Non-Goals
 

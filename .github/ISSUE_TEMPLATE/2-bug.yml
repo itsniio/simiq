@@ -1,0 +1,22 @@
+name: Bug
+description: Observed wrong behavior. The fix starts with a failing test.
+labels: ["type:bug", "hitl"]
+body:
+  - type: textarea
+    id: repro
+    attributes: { label: Reproduction, description: "Exact steps, smallest possible" }
+    validations: { required: true }
+  - type: input
+    id: expected
+    attributes: { label: Expected }
+    validations: { required: true }
+  - type: input
+    id: actual
+    attributes: { label: Actual }
+    validations: { required: true }
+  - type: textarea
+    id: evidence
+    attributes: { label: Evidence, description: "Logs, screenshots, the error tracker link, a failing test if you have one" }
+  - type: input
+    id: estimate
+    attributes: { label: Estimate, placeholder: "Estimate: 0.5d" }

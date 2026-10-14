@@ -1,0 +1,47 @@
+name: CI
+
+# This repository is public, so it runs on GitHub-hosted runners. The org's
+# self-hosted runner is not available to public repositories and must never
+# run code from forks.
+#
+# Jobs for engine/ (pytest, ruff, pip-audit) and web/ (vitest, eslint, size
+# budgets, audit) are added by the tasks that create those directories
+# (fit-engine-poc 1.2, tryon-viewer-mvp 3.1).
+on:
+  pull_request:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  spec:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # OpenSpec is pinned so a CLI release cannot change what "valid" means under a PR.
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Validate the OpenSpec changes and specs
+        run: npx --yes @fission-ai/openspec@1.14.1 validate --all --strict
+
+  privacy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Study data must never reach this public repository (CLAUDE.md, Constraints).
+      - name: Refuse files under data/private/
+        run: |
+          if git ls-files | grep -q '^data/private/'; then
+            echo "::error title=Personal data::files under data/private/ are tracked"
+            git ls-files | grep '^data/private/'
+            exit 1
+          fi

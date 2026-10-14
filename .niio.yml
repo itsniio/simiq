@@ -1,0 +1,65 @@
+# niio factory config for this repository (os.niio.sk design R4, R12, R14).
+#
+# Draft: os.niio.sk task 5.2 (#179) fixes the schema. Until then humans read this
+# file: it says which paths need the closest review and which checks gate each
+# stage. `agent` and `models` are filled when the runtime picks this repo up
+# (os.niio.sk part 5); until then every issue is `hitl`.
+
+# Radius classes. A run's level is capped by the highest class it touches:
+# core caps at L2 forever, feature starts at L1, safe starts at L2.
+radius:
+  core:
+    # The fit math and the numbers that decide a size: a wrong value is a wrong
+    # size for every shopper.
+    - engine/**
+    - data/**
+    # Body data passes through the API; the contract is public.
+    - api/**
+    # Runs on customers' shops.
+    - web/widget/**
+    - adapters/**
+    - .github/workflows/**
+    - .niio.yml
+  feature:
+    - web/viewer/**
+    - web/demo-shop/**
+    - web/portal/**
+  safe:
+    - "**/tests/**"
+    - "**/*.test.ts"
+    - "**/docs/**"
+    - docs/**
+    - web/*/src/locales/**
+    - README.md
+    - simiq-prehlad.md
+
+# Checks per stage. Verdicts: passed / failed / unverified / inconclusive —
+# a check that could not run is never green.
+checks:
+  spec:
+    - openspec-validate          # npx @fission-ai/openspec@1.14.1 validate --all --strict
+  build:
+    - pytest                     # engine/, api/
+    - ruff
+    - vitest                     # web/
+    - eslint
+    - size-budgets               # loader <= 10 KB; viewer 80 KB initial, 250 KB 3D chunk; mesh <= 300 KB
+    - dependency-audit           # pip-audit, pnpm audit
+    - secret-scan
+    - private-data-guard         # nothing under data/private/ is tracked
+  review:
+    - human                      # depth by radius; core needs Disclosure "None"
+    - simplicity                 # CLAUDE.md, Simplicity
+    - privacy                    # body data never logged, stored or sent to analytics
+  qa:
+    - e2e-from-scenarios         # Playwright, driven by the specs' WHEN/THEN scenarios
+    - a11y                       # axe, WCAG 2.1 AA
+    - screenshots                # 1440, 1024, 768, 390
+    - lighthouse-demo-shop       # no layout shift from the loader; performance delta recorded
+    - api-load                   # p95 <= 300 ms at 20 concurrent
+  release:
+    - fit-evaluation             # needs data/private/: runs on a founder's machine, report attached;
+                                 # unverified in CI, never claimed there
+    - production-freeze          # no deploys in the 48 h before a demo
+
+task_types: [build, verify, review, optimize, investigate]

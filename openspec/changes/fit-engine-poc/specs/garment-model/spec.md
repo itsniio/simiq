@@ -65,6 +65,17 @@ The garment record SHALL store the brand's published body-measurement size chart
 - **WHEN** chest points to M and waist points to L
 - **THEN** the lookup returns L and records that the larger size rule decided
 
+### Requirement: Display data
+A garment record SHALL carry what the product panel shows: name and subtitle in Slovak, Czech and English, colors with a name, a swatch and an image each, and key features including material properties. Prices and product links SHALL NOT be in the garment record; they belong to the shop.
+
+#### Scenario: Display data present
+- **WHEN** a jersey record with names in three languages, two colors and key features is loaded
+- **THEN** it validates and its panel category is Jerseys, derived from its type
+
+#### Scenario: Price rejected
+- **WHEN** a garment record contains a `price` field
+- **THEN** validation fails naming `price` and stating that prices belong to the shop manifest
+
 ### Requirement: Provenance
 Every set of size measurements and every fabric curve SHALL record who measured it, when and by which method.
 

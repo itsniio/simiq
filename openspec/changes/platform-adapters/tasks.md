@@ -1,6 +1,6 @@
 # Tasks
 
-Phase 2 (after 20 Nov 2026). Build group 1 first, then only the group for the pilot brand's platform; the remaining platform groups wait for a customer.
+Starts when the first customer on Shopify, Shoptet or WooCommerce signs (Isadore, the pilot, runs a custom shop and needs none). Build group 1 if `pilot-analytics` has not already added Postgres, then only that customer's platform group.
 
 ## 1. Core ingestion contract
 
