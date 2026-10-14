@@ -1,10 +1,12 @@
-"""How thin can an Anny body get, and does it still look human? Diagnostic for the BMI range.
+"""How thin or heavy can an Anny body get and still look human? Diagnostic for the BMI range.
 
-Run from engine/:  uv run python scripts/thin_bodies.py
-Builds a 25-year-old man and woman at 190 and 175 cm with Anny's weight parameter at and below 0
-(below 0 is extrapolation), prints mass and BMI and renders them to docs/measurements/thin-*.png.
+Run from engine/:  uv run python scripts/thin_bodies.py [heavy]
+Builds a 25-year-old man and woman at 190 and 175 cm with Anny's weight parameter at and below 0,
+or with `heavy` at and above 1 (beyond [0, 1] is extrapolation), prints mass and BMI and renders
+them to docs/measurements/thin-*.png or heavy-*.png.
 """
 
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -19,7 +21,9 @@ from simiq_fit.body import anny_age, height_cm, mass_kg  # noqa: E402
 
 DOCS = Path(__file__).resolve().parents[1] / "docs" / "measurements"
 CASES = [("male", 190.0), ("female", 175.0)]
-WEIGHTS = (0.0, -0.25, -0.5, -0.75)
+HEAVY = sys.argv[1:] == ["heavy"]
+WEIGHTS = (1.0, 1.25, 1.5, 1.75) if HEAVY else (0.0, -0.25, -0.5, -0.75)
+NAME = "heavy" if HEAVY else "thin"
 MUSCLES = (0.0, 0.25)
 PROPORTIONS = (0.0, 0.5, 1.0)
 
@@ -94,9 +98,9 @@ def main():
             draw(fig.add_subplot(2, len(WEIGHTS), len(WEIGHTS) + i + 1, projection="3d"), v,
                  faces, 0, "side")  # fmt: skip
         fig.suptitle(f"{sex} 25 y {target:.0f} cm, muscle 0, proportions 0.5")
-        fig.savefig(DOCS / f"thin-{sex}.png", dpi=110, bbox_inches="tight")
+        fig.savefig(DOCS / f"{NAME}-{sex}.png", dpi=110, bbox_inches="tight")
         plt.close(fig)
-    print(f"\nwrote {DOCS}/thin-male.png and thin-female.png")
+    print(f"\nwrote {DOCS}/{NAME}-male.png and {NAME}-female.png")
 
 
 if __name__ == "__main__":
