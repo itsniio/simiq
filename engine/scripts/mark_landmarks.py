@@ -179,7 +179,9 @@ def main():
     phenotype = fit_body(model, TEMPLATE)
     template = pose_body(model, phenotype, {})
     heads = {n: template["bone_poses"][i, :3, 3] for i, n in enumerate(model.bone_labels)}
-    landmarks, ring = find_landmarks(model, template["rest_vertices"], faces, heads)
+    # Bone poses share a frame with the posed vertices (rooted at the root bone), not with
+    # rest_vertices (the template's own frame), so landmarks are found on the posed standing mesh.
+    landmarks, ring = find_landmarks(model, template["vertices"], faces, heads)
     missing = set(RULES) - set(landmarks)
     if missing:
         raise SystemExit(f"rules found no vertex for: {sorted(missing)}")
@@ -189,7 +191,7 @@ def main():
             {
                 "schema_version": 1,
                 "topology": "anny",
-                "vertex_count": len(template["rest_vertices"]),
+                "vertex_count": len(template["vertices"]),
                 "provenance": f"scripts/mark_landmarks.py, {time.strftime('%Y-%m-%d')}, anny "
                 f"{importlib.metadata.version('anny')}, template body male 178 cm 75 kg",
                 "landmarks": landmarks,
