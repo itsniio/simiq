@@ -1,0 +1,17 @@
+# Personal and fit-study data - never commit
+data/private/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node and build output
+node_modules/
+dist/
+
+# OS
+.DS_Store
+
+# Claude Code local settings
+.claude/settings.local.json
