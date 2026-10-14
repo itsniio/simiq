@@ -114,9 +114,10 @@ def test_bmi_range_edges_are_matched(model, height):
         except ValueError as error:
             misses.append((sex, bmi, height, weight, str(error)))
             continue
-        if abs(got_height - height) > 0.5 or abs(got_mass - weight) > 0.02 * weight:
-            misses.append((sex, bmi, height, weight, round(got_height, 1), got_mass))
-        assert FIT_WEIGHT_RANGE[0] <= phenotype["weight"] <= FIT_WEIGHT_RANGE[1]
+        w = phenotype["weight"]  # float32 inside the fit: −0.1 comes back as −0.10000000149
+        in_range = FIT_WEIGHT_RANGE[0] - 1e-6 <= w <= FIT_WEIGHT_RANGE[1] + 1e-6
+        if not in_range or abs(got_height - height) > 0.5 or abs(got_mass - weight) > 0.02 * weight:
+            misses.append((sex, bmi, height, weight, round(got_height, 1), got_mass, w))
     assert misses == []
 
 
