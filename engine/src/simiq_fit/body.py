@@ -2,14 +2,54 @@
 
 import numpy as np
 
+from simiq_fit.inputs import BodyInputs
+
 ANNY_TOPOLOGY = "anny"
 SMPL_DERIVED_TOPOLOGIES = ("smpl", "smplx")
+
+BODY_DENSITY_KG_PER_L = 1.03
+DEFAULT_AGE = 35
+
+# Anny's own morphological age calibration (anny/data/shape_calibration/boys.pth and girls.pth,
+# identical for both): age in years and the matching value of Anny's age parameter.
+AGE_YEARS_ANCHORS = (0, 1, 4, 11, 16, 18, 64, 110)
+ANNY_AGE_ANCHORS = (0.0, 0.05, 0.215, 0.415, 0.67, 0.77, 0.83, 1.0)
+
+# Shape parameters fixed until body and region types are mapped (task 3.3).
+DEFAULT_MUSCLE = 0.5
+DEFAULT_PROPORTIONS = 0.5
+
+# Gauss-Newton fit of Anny's height and weight parameters (docs/formulas.md, "Body fit").
+FIT_MAX_STEPS = 25
+FIT_MAX_PARAMETER_STEP = 0.25
+FIT_STOP_HEIGHT_CM = 0.05
+FIT_STOP_MASS_SHARE = 0.002
 
 
 def check_topology(topology: str) -> None:
     """Refuse a mesh topology derived from the non-commercial SMPL family."""
     if topology.split("-")[0] in SMPL_DERIVED_TOPOLOGIES:
         raise ValueError(f"topology {topology!r} is SMPL-derived and non-commercial")
+
+
+def anny_age(years: float) -> float:
+    """Anny's age parameter for an age in years, interpolated in Anny's calibration."""
+    return float(np.interp(years, AGE_YEARS_ANCHORS, ANNY_AGE_ANCHORS))
+
+
+def height_cm(vertices):
+    """Vertical extent of a standing mesh in cm (Anny works in metres, z up)."""
+    return (vertices[:, 2].max() - vertices[:, 2].min()) * 100
+
+
+def mass_kg(vertices, faces):
+    """Mesh volume by the divergence theorem, in litres, times the body density."""
+    a, b, c = vertices[faces[:, 0]], vertices[faces[:, 1]], vertices[faces[:, 2]]
+    cross_x = b[:, 1] * c[:, 2] - b[:, 2] * c[:, 1]
+    cross_y = b[:, 2] * c[:, 0] - b[:, 0] * c[:, 2]
+    cross_z = b[:, 0] * c[:, 1] - b[:, 1] * c[:, 0]
+    volume_m3 = abs((a[:, 0] * cross_x + a[:, 1] * cross_y + a[:, 2] * cross_z).sum() / 6)
+    return volume_m3 * 1000 * BODY_DENSITY_KG_PER_L
 
 
 def load_model(topology: str = ANNY_TOPOLOGY):
@@ -19,6 +59,52 @@ def load_model(topology: str = ANNY_TOPOLOGY):
     import torch
 
     return anny.Anny(topology=topology).to(dtype=torch.float32)
+
+
+def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
+    """Anny phenotype whose standing mesh has the given height and mass."""
+    import torch
+
+    fixed = {
+        "gender": 1.0 if inputs.sex == "female" else 0.0,  # `other` is built as male (D2)
+        "age": anny_age(inputs.age or DEFAULT_AGE),
+        "muscle": DEFAULT_MUSCLE,
+        "proportions": DEFAULT_PROPORTIONS,
+    }
+    fixed_tensors = {k: torch.tensor([v]) for k, v in fixed.items()}
+    faces = torch.as_tensor(np.asarray(model.faces))
+    target = torch.tensor([inputs.height_cm, inputs.weight_kg])
+
+    def measure(x):
+        phenotype = {**fixed_tensors, "height": x[0:1], "weight": x[1:2]}
+        vertices = model(phenotype_kwargs=phenotype)["rest_vertices"][0]
+        return torch.stack([height_cm(vertices), mass_kg(vertices, faces)])
+
+    x = torch.tensor([0.5, 0.5])
+    for _ in range(FIT_MAX_STEPS):
+        residual = measure(x).detach() - target
+        if (
+            abs(residual[0]) < FIT_STOP_HEIGHT_CM
+            and abs(residual[1]) < FIT_STOP_MASS_SHARE * inputs.weight_kg
+        ):
+            return {**fixed, "height": float(x[0]), "weight": float(x[1])}
+        jacobian = torch.autograd.functional.jacobian(measure, x)
+        step = torch.linalg.solve(jacobian, residual)
+        step = step.clamp(-FIT_MAX_PARAMETER_STEP, FIT_MAX_PARAMETER_STEP)
+        x = (x - step).clamp(0.0, 1.0)
+    raise ValueError(
+        f"no Anny body reaches {inputs.height_cm} cm and {inputs.weight_kg} kg; "
+        f"closest: height {float(residual[0] + target[0]):.1f} cm, "
+        f"mass {float(residual[1] + target[1]):.1f} kg"
+    )
+
+
+def rest_vertices(model, phenotype: dict[str, float]) -> np.ndarray:
+    """Standing (rest pose) vertices of a body, in metres."""
+    import torch
+
+    with torch.no_grad():
+        return model(phenotype_kwargs=phenotype)["rest_vertices"][0].numpy()
 
 
 def pose_body(model, phenotype: dict[str, float], pose: dict[str, np.ndarray]) -> dict:
