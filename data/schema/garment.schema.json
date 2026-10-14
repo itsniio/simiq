@@ -1,0 +1,349 @@
+{
+  "$defs": {
+    "ChartRow": {
+      "additionalProperties": false,
+      "description": "One size of the brand's published size chart: body-measurement ranges in cm.",
+      "properties": {
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "ranges": {
+          "additionalProperties": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minProperties": 1,
+          "title": "Ranges",
+          "type": "object"
+        }
+      },
+      "required": [
+        "label",
+        "ranges"
+      ],
+      "title": "ChartRow",
+      "type": "object"
+    },
+    "Color": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/Localized"
+        },
+        "swatch": {
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Swatch",
+          "type": "string"
+        },
+        "image": {
+          "minLength": 1,
+          "title": "Image",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "swatch",
+        "image"
+      ],
+      "title": "Color",
+      "type": "object"
+    },
+    "Display": {
+      "additionalProperties": false,
+      "description": "What the product panel shows. Prices and product links belong to the shop, not here.",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/Localized"
+        },
+        "subtitle": {
+          "$ref": "#/$defs/Localized"
+        },
+        "colors": {
+          "items": {
+            "$ref": "#/$defs/Color"
+          },
+          "minItems": 1,
+          "title": "Colors",
+          "type": "array"
+        },
+        "features": {
+          "items": {
+            "$ref": "#/$defs/Localized"
+          },
+          "minItems": 1,
+          "title": "Features",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "subtitle",
+        "colors",
+        "features"
+      ],
+      "title": "Display",
+      "type": "object"
+    },
+    "Localized": {
+      "additionalProperties": false,
+      "description": "A user-facing text in every language the viewer ships.",
+      "properties": {
+        "sk": {
+          "minLength": 1,
+          "title": "Sk",
+          "type": "string"
+        },
+        "cs": {
+          "minLength": 1,
+          "title": "Cs",
+          "type": "string"
+        },
+        "en": {
+          "minLength": 1,
+          "title": "En",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sk",
+        "cs",
+        "en"
+      ],
+      "title": "Localized",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Who measured, when and how.",
+      "properties": {
+        "by": {
+          "minLength": 1,
+          "title": "By",
+          "type": "string"
+        },
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "method": {
+          "minLength": 1,
+          "title": "Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "by",
+        "date",
+        "method"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Size": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "pom": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Pom",
+          "type": "object"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "label",
+        "pom",
+        "provenance"
+      ],
+      "title": "Size",
+      "type": "object"
+    },
+    "Zone": {
+      "additionalProperties": false,
+      "description": "Where garment and body are compared: a point of measure against a body measurement.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "girth",
+            "loop",
+            "length"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "pom": {
+          "minLength": 1,
+          "title": "Pom",
+          "type": "string"
+        },
+        "body": {
+          "title": "Body",
+          "type": "string"
+        },
+        "body_at_cm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body At Cm"
+        },
+        "fabric": {
+          "title": "Fabric",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "course",
+            "wale"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "weight": {
+          "exclusiveMinimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "pom",
+        "body",
+        "fabric",
+        "direction",
+        "weight"
+      ],
+      "title": "Zone",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "id": {
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "jersey",
+        "bib_shorts"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "brand": {
+      "minLength": 1,
+      "title": "Brand",
+      "type": "string"
+    },
+    "model": {
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "fit_block": {
+      "minLength": 1,
+      "title": "Fit Block",
+      "type": "string"
+    },
+    "source": {
+      "enum": [
+        "brand_techpack",
+        "brand_cad",
+        "team_measured"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "display": {
+      "$ref": "#/$defs/Display"
+    },
+    "zones": {
+      "items": {
+        "$ref": "#/$defs/Zone"
+      },
+      "minItems": 1,
+      "title": "Zones",
+      "type": "array"
+    },
+    "sizes": {
+      "items": {
+        "$ref": "#/$defs/Size"
+      },
+      "minItems": 1,
+      "title": "Sizes",
+      "type": "array"
+    },
+    "fabrics": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Fabrics",
+      "type": "object"
+    },
+    "size_chart": {
+      "items": {
+        "$ref": "#/$defs/ChartRow"
+      },
+      "minItems": 1,
+      "title": "Size Chart",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "type",
+    "brand",
+    "model",
+    "fit_block",
+    "source",
+    "display",
+    "zones",
+    "sizes",
+    "fabrics",
+    "size_chart"
+  ],
+  "title": "Garment",
+  "type": "object"
+}

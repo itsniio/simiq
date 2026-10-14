@@ -1,0 +1,9 @@
+{
+  "type": "bib_shorts",
+  "note": "Default zones of bib shorts (design D5). Weights and the leg-opening level are starting values; task 5.4 sets the level per garment from its measured inseam.",
+  "zones": [
+    {"id": "hip", "kind": "girth", "pom": "hip_circumference", "body": "hip_girth", "fabric": "main", "direction": "course", "weight": 2},
+    {"id": "leg_opening", "kind": "girth", "pom": "leg_opening_circumference", "body": "thigh_girth", "body_at_cm": 25, "fabric": "main", "direction": "course", "weight": 1},
+    {"id": "vertical_loop", "kind": "loop", "pom": "vertical_loop_length", "body": "vertical_trunk_girth", "fabric": "main", "direction": "wale", "weight": 2}
+  ]
+}

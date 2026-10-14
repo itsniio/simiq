@@ -1,0 +1,129 @@
+{
+  "$defs": {
+    "Curve": {
+      "additionalProperties": false,
+      "description": "Force on a specimen against its strain (0.1 = 10 %), from one stretch test direction.",
+      "properties": {
+        "strain": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Strain",
+          "type": "array"
+        },
+        "force_n": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Force N",
+          "type": "array"
+        }
+      },
+      "required": [
+        "strain",
+        "force_n"
+      ],
+      "title": "Curve",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Who measured, when and how.",
+      "properties": {
+        "by": {
+          "minLength": 1,
+          "title": "By",
+          "type": "string"
+        },
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "method": {
+          "minLength": 1,
+          "title": "Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "by",
+        "date",
+        "method"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "id": {
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "composition": {
+      "minLength": 1,
+      "title": "Composition",
+      "type": "string"
+    },
+    "weight_g_m2": {
+      "exclusiveMinimum": 0,
+      "title": "Weight G M2",
+      "type": "number"
+    },
+    "specimen_width_mm": {
+      "exclusiveMinimum": 0,
+      "title": "Specimen Width Mm",
+      "type": "number"
+    },
+    "method": {
+      "enum": [
+        "strip_test_weights",
+        "supplier_datasheet",
+        "lab"
+      ],
+      "title": "Method",
+      "type": "string"
+    },
+    "curves": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Curve"
+      },
+      "propertyNames": {
+        "enum": [
+          "course",
+          "wale"
+        ]
+      },
+      "title": "Curves",
+      "type": "object"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "composition",
+    "weight_g_m2",
+    "specimen_width_mm",
+    "method",
+    "curves",
+    "provenance"
+  ],
+  "title": "Fabric",
+  "type": "object"
+}

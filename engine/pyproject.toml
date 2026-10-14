@@ -17,7 +17,11 @@ dev = [
     "pytest>=8",
     "ruff>=0.6",
     "matplotlib>=3.9",  # renders for the Anny spike (scripts/anny_spike.py)
+    "jsonschema>=4",  # checks the exported garment and fabric schemas accept the examples
 ]
+
+[project.scripts]
+simiq-fit = "simiq_fit.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.8,<0.13"]

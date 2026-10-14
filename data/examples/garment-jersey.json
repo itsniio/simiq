@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "id": "example-jersey",
+  "type": "jersey",
+  "brand": "example",
+  "model": "Example Race Jersey",
+  "fit_block": "race",
+  "source": "team_measured",
+  "display": {
+    "name": {
+      "sk": "Ukážkový dres",
+      "cs": "Ukázkový dres",
+      "en": "Example jersey"
+    },
+    "subtitle": {
+      "sk": "Pretekársky strih",
+      "cs": "Závodní střih",
+      "en": "Race fit"
+    },
+    "colors": [
+      {
+        "name": {
+          "sk": "Čierna",
+          "cs": "Černá",
+          "en": "Black"
+        },
+        "swatch": "#111111",
+        "image": "images/example-jersey-black.webp"
+      },
+      {
+        "name": {
+          "sk": "Modrá",
+          "cs": "Modrá",
+          "en": "Blue"
+        },
+        "swatch": "#1f4e9c",
+        "image": "images/example-jersey-blue.webp"
+      }
+    ],
+    "features": [
+      {
+        "sk": "Pružná pletenina",
+        "cs": "Pružný úplet",
+        "en": "Stretch knit"
+      },
+      {
+        "sk": "Tri zadné vrecká",
+        "cs": "Tři zadní kapsy",
+        "en": "Three rear pockets"
+      }
+    ]
+  },
+  "zones": [
+    {
+      "id": "chest",
+      "kind": "girth",
+      "pom": "chest_circumference",
+      "body": "chest_girth",
+      "fabric": "main",
+      "direction": "course",
+      "weight": 2
+    },
+    {
+      "id": "waist",
+      "kind": "girth",
+      "pom": "waist_circumference",
+      "body": "waist_girth",
+      "fabric": "main",
+      "direction": "course",
+      "weight": 1
+    },
+    {
+      "id": "hem",
+      "kind": "girth",
+      "pom": "hem_circumference",
+      "body": "hip_girth",
+      "fabric": "main",
+      "direction": "course",
+      "weight": 1
+    },
+    {
+      "id": "sleeve_opening",
+      "kind": "girth",
+      "pom": "sleeve_opening_circumference",
+      "body": "upper_arm_girth",
+      "body_at_cm": 12,
+      "fabric": "sleeve",
+      "direction": "course",
+      "weight": 1
+    },
+    {
+      "id": "back_length",
+      "kind": "length",
+      "pom": "center_back_length",
+      "body": "back_length",
+      "fabric": "main",
+      "direction": "wale",
+      "weight": 1
+    }
+  ],
+  "sizes": [
+    {
+      "label": "S",
+      "pom": {
+        "chest_circumference": 80,
+        "waist_circumference": 72,
+        "hem_circumference": 78,
+        "sleeve_opening_circumference": 26,
+        "center_back_length": 60
+      },
+      "provenance": {
+        "by": "simiq team",
+        "date": "2026-10-14",
+        "method": "illustrative values, not a real garment"
+      }
+    },
+    {
+      "label": "M",
+      "pom": {
+        "chest_circumference": 84,
+        "waist_circumference": 76,
+        "hem_circumference": 82,
+        "sleeve_opening_circumference": 27,
+        "center_back_length": 62
+      },
+      "provenance": {
+        "by": "simiq team",
+        "date": "2026-10-14",
+        "method": "illustrative values, not a real garment"
+      }
+    },
+    {
+      "label": "L",
+      "pom": {
+        "chest_circumference": 88,
+        "waist_circumference": 80,
+        "hem_circumference": 86,
+        "sleeve_opening_circumference": 28,
+        "center_back_length": 64
+      },
+      "provenance": {
+        "by": "simiq team",
+        "date": "2026-10-14",
+        "method": "illustrative values, not a real garment"
+      }
+    }
+  ],
+  "fabrics": {
+    "main": "example-knit",
+    "sleeve": "example-knit"
+  },
+  "size_chart": [
+    {
+      "label": "S",
+      "ranges": {
+        "chest": [
+          84,
+          88
+        ],
+        "waist": [
+          72,
+          76
+        ]
+      }
+    },
+    {
+      "label": "M",
+      "ranges": {
+        "chest": [
+          88,
+          92
+        ],
+        "waist": [
+          76,
+          80
+        ]
+      }
+    },
+    {
+      "label": "L",
+      "ranges": {
+        "chest": [
+          92,
+          96
+        ],
+        "waist": [
+          80,
+          84
+        ]
+      }
+    }
+  ]
+}

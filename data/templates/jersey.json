@@ -1,0 +1,11 @@
+{
+  "type": "jersey",
+  "note": "Default zones of a cycling jersey (design D5). Weights and the sleeve level are starting values; task 5.4 sets the sleeve level per garment from its measured sleeve.",
+  "zones": [
+    {"id": "chest", "kind": "girth", "pom": "chest_circumference", "body": "chest_girth", "fabric": "main", "direction": "course", "weight": 2},
+    {"id": "waist", "kind": "girth", "pom": "waist_circumference", "body": "waist_girth", "fabric": "main", "direction": "course", "weight": 1},
+    {"id": "hem", "kind": "girth", "pom": "hem_circumference", "body": "hip_girth", "fabric": "main", "direction": "course", "weight": 1},
+    {"id": "sleeve_opening", "kind": "girth", "pom": "sleeve_opening_circumference", "body": "upper_arm_girth", "body_at_cm": 12, "fabric": "sleeve", "direction": "course", "weight": 1},
+    {"id": "back_length", "kind": "length", "pom": "center_back_length", "body": "back_length", "fabric": "main", "direction": "wale", "weight": 1}
+  ]
+}

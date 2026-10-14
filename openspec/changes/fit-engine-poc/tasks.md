@@ -36,8 +36,8 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 
 ## 5. Garment and fabric data
 
-- [ ] 5.1 (#22) Implement garment and fabric models with validation and JSON Schema export (`simiq-fit validate-data`); verify example records pass and broken examples fail naming the field
-- [ ] 5.2 (#23) Create jersey and bib-shorts templates with the default zones; verify the template-zone scenarios
+- [x] 5.1 (#22) Implement garment and fabric models with validation and JSON Schema export (`simiq-fit validate-data`); verify example records pass and broken examples fail naming the field
+- [x] 5.2 (#23) Create jersey and bib-shorts templates with the default zones; verify the template-zone scenarios
 - [ ] 5.3 (#24) Write `docs/garment-measuring.md` (lay flat, which points of measure, two measurers, doubling flat circumferences); verify a second team member can measure one size from it and lands within 0.5 cm of the first
 - [ ] 5.4 (#25) Measure the purchased Isadore jersey and bib shorts in every size (two people) and add `data/garments/*.json`; verify `validate-data` passes and grading warnings are reviewed
 - [ ] 5.5 (#26) Build the strip-test rig (weights or force gauge, 50 mm specimens) and measure course and wale curves with 3 specimens per direction from the extra owned jersey, after its dot-grid photos (8.5) if those are taken; add `data/fabrics/*.json` and curve plots in `docs/`; verify `validate-data` passes

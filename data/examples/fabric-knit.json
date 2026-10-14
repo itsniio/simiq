@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "id": "example-knit",
+  "name": "Example stretch knit",
+  "composition": "80% polyamide, 20% elastane",
+  "weight_g_m2": 190,
+  "specimen_width_mm": 50,
+  "method": "strip_test_weights",
+  "curves": {
+    "course": {
+      "strain": [
+        0,
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5
+      ],
+      "force_n": [
+        0,
+        2.0,
+        4.5,
+        7.5,
+        11.0,
+        15.0
+      ]
+    },
+    "wale": {
+      "strain": [
+        0,
+        0.1,
+        0.2,
+        0.3,
+        0.4,
+        0.5
+      ],
+      "force_n": [
+        0,
+        3.0,
+        6.5,
+        10.5,
+        15.0,
+        20.0
+      ]
+    }
+  },
+  "provenance": {
+    "by": "simiq team",
+    "date": "2026-10-14",
+    "method": "illustrative values, not a real garment"
+  }
+}

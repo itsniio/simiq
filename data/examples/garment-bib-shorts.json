@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "id": "example-bib-shorts",
+  "type": "bib_shorts",
+  "brand": "example",
+  "model": "Example Bib Shorts",
+  "fit_block": "race",
+  "source": "team_measured",
+  "display": {
+    "name": {
+      "sk": "Ukážkové kraťasy s trakmi",
+      "cs": "Ukázkové kraťasy se šlemi",
+      "en": "Example bib shorts"
+    },
+    "subtitle": {
+      "sk": "Pretekársky strih",
+      "cs": "Závodní střih",
+      "en": "Race fit"
+    },
+    "colors": [
+      {
+        "name": {
+          "sk": "Čierna",
+          "cs": "Černá",
+          "en": "Black"
+        },
+        "swatch": "#111111",
+        "image": "images/example-jersey-black.webp"
+      },
+      {
+        "name": {
+          "sk": "Modrá",
+          "cs": "Modrá",
+          "en": "Blue"
+        },
+        "swatch": "#1f4e9c",
+        "image": "images/example-jersey-blue.webp"
+      }
+    ],
+    "features": [
+      {
+        "sk": "Pružná pletenina",
+        "cs": "Pružný úplet",
+        "en": "Stretch knit"
+      },
+      {
+        "sk": "Tri zadné vrecká",
+        "cs": "Tři zadní kapsy",
+        "en": "Three rear pockets"
+      }
+    ]
+  },
+  "zones": [
+    {
+      "id": "hip",
+      "kind": "girth",
+      "pom": "hip_circumference",
+      "body": "hip_girth",
+      "fabric": "main",
+      "direction": "course",
+      "weight": 2
+    },
+    {
+      "id": "leg_opening",
+      "kind": "girth",
+      "pom": "leg_opening_circumference",
+      "body": "thigh_girth",
+      "body_at_cm": 25,
+      "fabric": "main",
+      "direction": "course",
+      "weight": 1
+    },
+    {
+      "id": "vertical_loop",
+      "kind": "loop",
+      "pom": "vertical_loop_length",
+      "body": "vertical_trunk_girth",
+      "fabric": "main",
+      "direction": "wale",
+      "weight": 2
+    }
+  ],
+  "sizes": [
+    {
+      "label": "S",
+      "pom": {
+        "hip_circumference": 80,
+        "leg_opening_circumference": 40,
+        "vertical_loop_length": 140
+      },
+      "provenance": {
+        "by": "simiq team",
+        "date": "2026-10-14",
+        "method": "illustrative values, not a real garment"
+      }
+    },
+    {
+      "label": "M",
+      "pom": {
+        "hip_circumference": 84,
+        "leg_opening_circumference": 42,
+        "vertical_loop_length": 146
+      },
+      "provenance": {
+        "by": "simiq team",
+        "date": "2026-10-14",
+        "method": "illustrative values, not a real garment"
+      }
+    },
+    {
+      "label": "L",
+      "pom": {
+        "hip_circumference": 88,
+        "leg_opening_circumference": 44,
+        "vertical_loop_length": 152
+      },
+      "provenance": {
+        "by": "simiq team",
+        "date": "2026-10-14",
+        "method": "illustrative values, not a real garment"
+      }
+    }
+  ],
+  "fabrics": {
+    "main": "example-knit"
+  },
+  "size_chart": [
+    {
+      "label": "S",
+      "ranges": {
+        "waist": [
+          72,
+          76
+        ],
+        "hip": [
+          86,
+          90
+        ]
+      }
+    },
+    {
+      "label": "M",
+      "ranges": {
+        "waist": [
+          76,
+          80
+        ],
+        "hip": [
+          90,
+          94
+        ]
+      }
+    },
+    {
+      "label": "L",
+      "ranges": {
+        "waist": [
+          80,
+          84
+        ],
+        "hip": [
+          94,
+          98
+        ]
+      }
+    }
+  ]
+}
