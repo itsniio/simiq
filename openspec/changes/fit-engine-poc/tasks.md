@@ -49,7 +49,7 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 - [x] 6.2 (#29) Implement tension from fabric curves and relative pressure (Laplace's law) with the `out_of_curve` flag and derivation; verify the M-vs-L pressure ordering and out-of-curve tests
 - [ ] 6.3 (#30) Set `COMFORT_TENSION_N_PER_M` from the team's own try-ons (recorded in `formulas.md`) and implement length margin; verify the back-length scenario (+1.0 cm, `ok`)
 - [ ] 6.4 (#31) Implement fit-range loading with fallback to `data/fit-ranges/default.json`, and set initial ranges by hand from the team's try-ons; verify status tests and the `default_ranges` flag
-- [ ] 6.5 (#32) Add a performance test; verify 5 sizes from precomputed measurements take under 50 ms
+- [x] 6.5 (#32) Add a performance test; verify 5 sizes from precomputed measurements take under 50 ms
 
 ## 7. Recommendation and CLI
 

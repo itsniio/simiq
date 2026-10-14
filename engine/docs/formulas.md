@@ -177,3 +177,30 @@ A stretched tube of tension T around a cylinder of radius r presses on it with
 (the hoop-stress form of Laplace's law; design "Context" and `simiq-prehlad.md` cite the study, https://pmc.ncbi.nlm.nih.gov/articles/PMC8401858/, where this with measured stretch curves predicted pressure on test cylinders mostly within 5 %). The body is not a cylinder, so P is only compared between sizes of the same garment on the same body, where the shape error is the same for all: **relative pressure** = P / the largest P among the sizes (`relative_pressures`). It is never shown as an absolute value.
 
 Tests: at 15 % on a 96 cm girth, r = 0.96 / 2π = 0.152789 m and P = 65 / 0.152789 = 425.42 Pa. Sizes M (84 cm) and L (88 cm) on a 96 cm chest: strains 14.29 % and 9.09 %; F = 2.0 + 0.4286 · 2.5 = 3.0714 N and 0.9091 · 2.0 = 1.8182 N, so T = 61.43 and 36.36 N/m; the radius is the same, so relative pressure is 1.0 for M and 36.36 / 61.43 = 0.592 for L. A strain of 120 / 75 − 1 = 60 % lies beyond the curve's 50 % and is flagged.
+
+### Length margin (task 6.3)
+
+A length zone (back length) does not press on the body; it rides up when too short. The garment can stretch along the measurement until its fabric reaches a comfortable tension, `COMFORT_TENSION_N_PER_M` (one constant, set from the team's try-ons in task 6.3). The strain where the wale curve reaches it, ε_allow, is read off the curve backwards (`comfort_strain`: tension is interpolated as a function of strain, so its inverse is interpolated the same way between the measured points):
+
+    margin = L_garment · (1 + ε_allow) − L_body      [cm]
+
+A negative margin means the garment is short in that pose. If the curve never reaches the comfort tension, ε_allow is the curve's last strain and the zone is flagged `out_of_curve`.
+
+Tests: the spec's back length, 60 · 1.05 − 62 = +1.0 cm. On the example's 50 mm course curve (tensions 0, 40, 90, 150, 220, 300 N/m at 0–50 %) 65 N/m lies halfway between 40 and 90, at 15 %; 400 N/m is never reached.
+
+### Status bands (task 6.4)
+
+Each zone of a brand's fit block has band edges in `data/fit-ranges/<brand>.json` (`default.json` when the brand or fit block has none; the result is then flagged `default_ranges`):
+
+| Zone kind | Edges | Bands |
+|---|---|---|
+| girth, loop (strain) | a < b < c < d | < a `too_loose`, [a, b) `loose`, [b, c] `ok`, (c, d] `tight`, > d `too_tight` |
+| length (margin, cm) | a < b < c | < a `too_short`, [a, b) `short`, [b, c] `ok`, > c `long` |
+
+An edge value itself belongs to the band nearer `ok`. The edges are data with their source (`provenance`), set first from the team's try-ons and then fitted from the study (design D7, D9); the tests use made-up edges.
+
+Test of a whole garment (`test_every_zone_of_every_size`): the example jersey on a body with chest 92 cm. S's chest strain 92/80 − 1 = 15 % lies in (10 %, 20 %] and is `tight`; its back margin with ε_allow = 10.714 % (65 N/m on the wale curve's 60 → 130 N/m between 10 and 20 %) is 60 · 1.10714 − 63 = +3.43 cm, `ok`. Chest tensions 65, 38.10 and 18.18 N/m for S, M and L give relative pressures 1, 0.586 and 0.280.
+
+### Speed (task 6.5)
+
+Five sizes of a jersey from precomputed measurements take well under the spec's 50 ms (`test_five_sizes_take_under_50_ms`, the mean of 10 runs); the work is a few interpolations per zone and size. Measured 2026-10-14 on the Linux VM: 0.05 ms for the example's three sizes, the mean of 100 calls.
