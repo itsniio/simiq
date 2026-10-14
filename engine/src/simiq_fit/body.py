@@ -21,6 +21,7 @@ DEFAULT_PROPORTIONS = 0.5
 
 # Weighted Gauss-Newton fit of Anny's height, weight and muscle (docs/formulas.md, "Body fit").
 FIT_MAX_STEPS = 30
+FIT_MAX_HALVINGS = 8
 FIT_MAX_PARAMETER_STEP = 0.25
 FIT_STOP_HEIGHT_CM = 0.05
 FIT_STOP_MASS_SHARE = 0.002
@@ -98,11 +99,21 @@ def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
             free = jacobian * ~stuck
             step = torch.linalg.lstsq(free, r.unsqueeze(1)).solution.squeeze(1) * ~stuck
         step = step.clamp(-FIT_MAX_PARAMETER_STEP, FIT_MAX_PARAMETER_STEP)
-        x = (x - step).clamp(0.0, 1.0)
+        # Backtracking: halve the step until it lowers the squared residuals.
+        cost = float((r**2).sum())
+        for _ in range(FIT_MAX_HALVINGS):
+            candidate = (x - step).clamp(0.0, 1.0)
+            if float((residuals(candidate).detach() ** 2).sum()) < cost:
+                break
+            step = step / 2
+        else:
+            break  # no step lowers the residuals: the closest body is reached
+        x = candidate
     reached = measure(x).detach()
     raise ValueError(
         f"no Anny body reaches {inputs.height_cm} cm and {inputs.weight_kg} kg; "
-        f"closest: height {float(reached[0]):.1f} cm, mass {float(reached[1]):.1f} kg"
+        f"closest: height {float(reached[0]):.1f} cm, mass {float(reached[1]):.1f} kg "
+        f"(height {float(x[0]):.3f}, weight {float(x[1]):.3f}, muscle {float(x[2]):.3f})"
     )
 
 

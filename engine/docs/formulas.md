@@ -58,7 +58,7 @@ Anny is differentiable, so PyTorch gives the 3 × 3 Jacobian J = ∂r/∂(h, w, 
 
     (h, w, m) ← clamp((h, w, m) − clamp(Δ, ±FIT_MAX_PARAMETER_STEP), 0, 1)
 
-starting from (0.5, 0.5, m₀). The step limit keeps an early, badly linearised step from jumping across the range; the clamp keeps the parameters where Anny interpolates rather than extrapolates. The fit stops when |r₁| < 1 and |r₂| < 1, that is height within 0.05 cm and mass within 0.2 %, ten times tighter than the spec's 0.5 cm and 2 %. After `FIT_MAX_STEPS` = 30 steps without stopping, no Anny body in range reaches the inputs and the fit raises an error with the closest height and mass.
+starting from (0.5, 0.5, m₀). A step is accepted only if it lowers Σ r²; otherwise it is halved, up to `FIT_MAX_HALVINGS` = 8 times (backtracking line search). Without it, one random input (female, 21 years, 165.3 cm, 72.7 kg) wandered off to 159.5 cm and 63.1 kg: a full Gauss-Newton step overshot where Anny's blend shapes bend sharply. If no halving helps, the fit stops early with an error. The step limit keeps an early, badly linearised step from jumping across the range; the clamp keeps the parameters where Anny interpolates rather than extrapolates. The fit stops when |r₁| < 1 and |r₂| < 1, that is height within 0.05 cm and mass within 0.2 %, ten times tighter than the spec's 0.5 cm and 2 %. After `FIT_MAX_STEPS` = 30 steps without stopping, no Anny body in range reaches the inputs and the fit raises an error with the closest height and mass.
 
 Tests (`test_body_fit.py`): 172 cm and 68 kg land within 171.5–172.5 cm and 66.64–69.36 kg; 20 seeded random valid inputs land within 0.5 cm and 2 %; muscle stays at 0.5 for 180 cm, 75 kg; the 173.8 cm, 59.3 kg case is matched with muscle below 0.5.
 

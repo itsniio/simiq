@@ -116,3 +116,9 @@ def test_thin_body_lowers_muscle_once_weight_is_at_its_minimum(model):
     phenotype, height, mass = built(model, height_cm=173.8, weight_kg=59.3, age=58)
     assert abs(height - 173.8) <= 0.5 and abs(mass - 59.3) <= 0.02 * 59.3
     assert phenotype["muscle"] < 0.5
+
+
+def test_fit_does_not_wander_off(model):
+    # Without backtracking the fit overshot to 159.5 cm and 63.1 kg for this input.
+    _, height, mass = built(model, sex="female", height_cm=165.3, weight_kg=72.7, age=21)
+    assert abs(height - 165.3) <= 0.5 and abs(mass - 72.7) <= 0.02 * 72.7
