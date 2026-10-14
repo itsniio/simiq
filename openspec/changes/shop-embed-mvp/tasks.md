@@ -4,7 +4,7 @@ Target: T4 (2–8 Nov 2026), after tryon-viewer-mvp group 6.2 (embedded mode). D
 
 ## 1. Setup
 
-- [ ] 1.1 Create `web/widget` (TypeScript, library build to a single `loader.js`, vitest, Playwright) with a 10 KB compressed size check; verify `pnpm build` and that the size check fails above 10 KB
+- [ ] 1.1 Create `web/widget` (TypeScript, library build to a single `loader.js`, vitest, Playwright) with a 10 KB compressed size check wired into the `web` CI job; verify `pnpm build` and that the size check fails above 10 KB
 
 ## 2. Manifest
 
@@ -35,3 +35,4 @@ Target: T4 (2–8 Nov 2026), after tryon-viewer-mvp group 6.2 (embedded mode). D
 - [ ] 6.1 Build `web/demo-shop` (cycling product page, size selector, fake cart) with the snippet and placeholder CSS; verify the Lighthouse run shows no simiq layout shift and record the performance score with and without the loader
 - [ ] 6.2 (Stretch) Paste the snippet into a Shopify development store theme; verify the button works on a product page
 - [ ] 6.3 Write the demo-day click path and backup plan in `docs/demo-script.md`; verify it in a full rehearsal on the production environment
+- [ ] 6.4 Agree placement, product identifier (SKU or product id) and CSP entries with Isadore's developers and write their shop manifest; verify the button appears on an Isadore product page in their test environment (or a saved copy of the page if they have none)

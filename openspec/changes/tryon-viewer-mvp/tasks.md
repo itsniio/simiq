@@ -22,15 +22,18 @@ Target: groups 3–4 can start in T2 against fixtures; groups 1–2 in T3 (after
 
 ## 3. Viewer foundation (TypeScript)
 
-- [ ] 3.1 Create the `web/` pnpm workspace and `web/viewer` (Vite, TypeScript, Preact, vitest, eslint); verify `pnpm build` and `pnpm test` pass
-- [ ] 3.2 Add i18n with SK, CS and EN message files and language selection by parameter or browser; verify the `lang=sk` test and the English default
+- [ ] 3.1 Create the `web/` pnpm workspace and `web/viewer` (Vite, TypeScript, Preact, vitest, eslint) and add a `web` job to `.github/workflows/ci.yml` (test, lint, budgets, `pnpm audit`); verify the job runs green on a PR
+- [ ] 3.2 Add i18n with SK, CS and EN message files and language selection by parameter or browser, plus a test that fails on any user-facing string outside the message files; verify the `lang=sk` test, the English default and that a hardcoded string makes the test fail
 - [ ] 3.3 Add bundle budgets (80 KB initial, 250 KB 3D chunk) to the build check; verify that adding a large dependency makes the check fail
+- [ ] 3.4 Create `tokens.css` from the Figma variables and a lint rule forbidding raw hex outside it; verify a raw hex in a component fails lint
+- [ ] 3.5 Generate `api-types.ts` from the API's OpenAPI document; verify a changed response field breaks the type check
 
 ## 4. Form and consent
 
-- [ ] 4.1 Build the body form with the same validation ranges as the API and how-to-measure help for girths; verify unit tests for required-only submit and inline errors
-- [ ] 4.2 Add the privacy notice, policy link and consent checkbox; verify a test that no fetch with body data happens without consent
-- [ ] 4.3 Add opt-in profile memory and "forget me", with storage access wrapped; verify tests for prefill, deletion and storage that throws
+- [ ] 4.1 Read every onboarding frame through the Figma MCP and record frame ids in `web/viewer/docs/figma.md`; verify each form step has a frame id
+- [ ] 4.2 Build the onboarding steps from those frames (sex, height, weight, silhouette; optional age, region silhouettes, girths with how-to-measure help) with the API's validation ranges; verify unit tests for required-only submit and inline errors, and designer sign-off on 390 px and 1440 px comparison screenshots
+- [ ] 4.3 Add the privacy notice, policy link and consent checkbox; verify a test that no fetch with body data happens without consent
+- [ ] 4.4 Add opt-in profile memory and "forget me", with storage access wrapped; verify tests for prefill, deletion and storage that throws
 
 ## 5. Results and 3D
 

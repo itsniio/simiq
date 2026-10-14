@@ -54,7 +54,7 @@ draft --> submitted --> in_digitization --> in_review --> live --> archived
 - `in_digitization` and `in_review` are set by staff.
 - `live` requires the brand to approve the preview.
 - Each transition is logged with user and time.
-- The SLA target (working days from `submitted` to `in_review`) is configurable; overdue submissions are flagged.
+- The turnaround target (working days from `submitted` to `in_review`) is one constant, set when pricing is decided; overdue submissions are flagged.
 
 ### D5. Preview
 
@@ -82,6 +82,7 @@ draft --> submitted --> in_digitization --> in_review --> live --> archived
 
 - `web/portal`: Vite + TypeScript + Preact, the same stack as the viewer, so the preview component is reused.
 - Talks to `api/` under `/v1/portal/*`.
+- Re-decided before this change starts: a portal is CRUD, sign-in and Postgres, which is niio's Rails default (os.niio.sk R1) and where the factory's skills and checks are strongest. The founder ruled Python + TypeScript for the demo-day work (`fit-engine-poc/grill.md` #1); this change gets its own ruling.
 
 ## Risks / Trade-offs
 

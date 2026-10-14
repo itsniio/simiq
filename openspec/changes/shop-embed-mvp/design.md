@@ -88,6 +88,28 @@
 - `web/demo-shop` is a static cycling product page with a size selector and a fake "add to cart". It listens for `simiq:select-size`.
 - A Shopify development store with the snippet pasted into the theme is a stretch goal and a preview of `platform-adapters`.
 
+## Program design
+
+```
+web/widget/
+  src/
+    loader.ts         entry: read the script tag's data-shop, fetch manifest (3 s timeout),
+                      scan placements, mount buttons; window.simiq = { mount, getSessionId? }
+    button.ts         <simiq-fit> custom element, Shadow DOM, theming variables
+    modal.ts          <dialog> + lazy iframe, focus return, scroll lock
+    messages.ts       v1 envelope; accepts only the viewer origin
+    manifest.ts       type Manifest + lookup(product) -> {garment_id, sizes} | null
+  tests/              Playwright pages: mapped, unmapped, disallowed origin, re-render,
+                      blocked CDN, forged message, hostile CSS
+  manifest.schema.json
+web/demo-shop/
+  index.html          product page with size selector listening for simiq:select-size
+```
+
+No framework in the loader: plain TypeScript, so the 10 KB budget holds. Constants: `MANIFEST_TIMEOUT_MS = 3000`, `MANIFEST_CACHE_S = 300`, `PROTOCOL_VERSION = 1`.
+
+The pilot shop, isadore.com, runs a custom PHP (Nette) shop: the snippet path in this change is the pilot integration, with placement and product identifiers agreed with Isadore's developers.
+
 ## Risks / Trade-offs
 
 - [The shop's CSP blocks our script or frame] → the guide lists the exact `script-src`, `connect-src` and `frame-src` entries.

@@ -78,7 +78,7 @@ The API SHALL allow browser requests only from configured viewer origins.
 - **THEN** `/healthz` responds 200 with garment count and model version
 
 ### Requirement: Rate limiting
-The API SHALL limit requests per client IP (default 60 per minute) and respond 429 when the limit is exceeded.
+The API SHALL limit requests to 60 per minute per client IP and respond 429 when the limit is exceeded.
 
 #### Scenario: Over the limit
 - **WHEN** one client sends 61 requests within a minute

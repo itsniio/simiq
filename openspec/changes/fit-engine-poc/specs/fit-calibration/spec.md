@@ -9,8 +9,8 @@ Defines how fit-study data is captured and protected, how fit ranges are calibra
 ### Requirement: Study record contents
 Each participant record SHALL contain:
 - a pseudonymous id and consent timestamp;
-- shopper inputs (height, weight, age, sex);
-- tape-measured chest, waist and hip girths;
+- the shopper inputs exactly as the participant entered them in the onboarding flow (sex, height, weight, silhouette picks, age if given), marked as self-reported;
+- tape-measured chest, waist and hip girths, stored separately from the self-reported inputs;
 - the garment and sizes tried;
 - a rating per zone, size and pose on the fit status scale;
 - the size the participant would buy, and free-text comments.
@@ -55,7 +55,7 @@ The evaluation report SHALL contain:
 
 #### Scenario: Two baselines
 - **WHEN** the baseline is computed
-- **THEN** the size chart is applied once to tape-measured girths and once to girths estimated from height and weight only, and both results are reported
+- **THEN** the size chart is applied once to tape-measured girths and once to girths estimated from the required inputs only, and both results are reported
 
 ### Requirement: Out-of-sample accuracy
 When fit ranges are calibrated on the same study that is evaluated, reported accuracy SHALL be out of sample.
@@ -65,11 +65,29 @@ When fit ranges are calibrated on the same study that is evaluated, reported acc
 - **THEN** each participant's prediction uses ranges fitted without that participant
 
 ### Requirement: Body measurement check
-The evaluation SHALL report the difference between body-profile girths and tape-measured girths, both for profiles built from height and weight only and for profiles that include girth inputs.
+The evaluation SHALL report the difference between body-profile girths and tape-measured girths for profiles built from the required inputs only and for profiles that also include girth inputs.
 
 #### Scenario: Girth error report
 - **WHEN** evaluation runs
-- **THEN** mean absolute error per girth is reported for "height and weight only" and for "with girths"
+- **THEN** mean absolute error per girth is reported for "required inputs only" and for "with girths"
+
+### Requirement: Silhouette value check
+The evaluation SHALL report girth error for profiles built with and without the participant's silhouette pick, so the silhouette's place among the required inputs can be judged.
+
+#### Scenario: Silhouette ablation
+- **WHEN** evaluation runs on participants who picked a silhouette
+- **THEN** mean absolute error per girth is reported with the pick and with `regular` substituted for every participant
+
+### Requirement: Measured strain comparison
+A record MAY include strain per zone and pose measured from dot-grid photos of a worn garment. When it does, the evaluation SHALL report the difference between predicted and measured strain for each such zone and pose.
+
+#### Scenario: Dot-grid strain present
+- **WHEN** a participant's record has a measured chest strain of 12 % in `hoods` and the engine predicts 15 %
+- **THEN** the report lists zone chest, pose hoods, predicted 15 %, measured 12 % and a difference of 3 percentage points
+
+#### Scenario: No dot-grid data
+- **WHEN** no record has measured strain
+- **THEN** the report states that the strain comparison is unverified instead of omitting it
 
 ### Requirement: Aggregate-only results
 Evaluation outputs intended for sharing SHALL contain only aggregate figures and SHALL NOT contain any individual's measurements.

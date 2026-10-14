@@ -7,18 +7,26 @@ Turns the few inputs a shopper is willing to give into a 3D body in cycling pose
 ## ADDED Requirements
 
 ### Requirement: Shopper body inputs
-The system SHALL accept height (cm), weight (kg), age (years) and sex (`female` or `male`) as required inputs, and chest, waist and hip girths (cm) as optional inputs.
+The system SHALL accept the fields of the Figma onboarding flow: sex (`female` or `male`), height (cm), weight (kg) and a body silhouette (`slim`, `regular` or `athletic`) as required inputs. Age, the flow's region silhouettes, and chest, waist and hip girths (cm) SHALL be optional. Without an age the body SHALL be built for age 35.
 
 #### Scenario: Required inputs only
-- **WHEN** a body is requested with height 180, weight 75, age 30, sex male and no girths
-- **THEN** the system produces a body profile and marks chest, waist and hip girths as estimated
+- **WHEN** a body is requested with sex male, height 180, weight 75, silhouette regular and nothing else
+- **THEN** the system produces a body profile for age 35 and marks chest, waist and hip girths as estimated
 
 #### Scenario: Optional girths given
 - **WHEN** a body is requested with chest 98 and waist 84 in addition to the required inputs
 - **THEN** the standing chest and waist girths of the produced body are each within 1.0 cm of the given values
 
+#### Scenario: Silhouette changes shape
+- **WHEN** two bodies share sex, height and weight and differ only in silhouette, `slim` and `athletic`
+- **THEN** the `athletic` body has the larger standing chest girth and shoulder width
+
 ### Requirement: Input validation
-The system SHALL reject inputs outside the supported ranges with an error naming each invalid field. Supported ranges: height 140–210 cm, weight 35–160 kg, age 16–90 years, each girth 50–160 cm, BMI 15–45.
+The system SHALL reject inputs outside the supported ranges with an error naming each invalid field. Supported ranges: height 140–210 cm, weight 35–160 kg, age 16–90 years, each girth 50–160 cm, BMI 15–45; the silhouette SHALL be one of the listed values.
+
+#### Scenario: Unknown silhouette
+- **WHEN** silhouette `stocky` is submitted
+- **THEN** the system returns a validation error for field `silhouette` and produces no body
 
 #### Scenario: Height out of range
 - **WHEN** height 250 is submitted
@@ -29,7 +37,7 @@ The system SHALL reject inputs outside the supported ranges with an error naming
 - **THEN** the system returns a validation error stating that the height and weight combination is outside the supported range
 
 ### Requirement: Height and weight matching
-The produced body SHALL match the given height within 0.5 cm and the given weight within 2 %, where weight is derived from body volume and the configured body density.
+The produced body SHALL match the given height within 0.5 cm and the given weight within 2 %, where weight is body volume times the body density constant.
 
 #### Scenario: Height matched
 - **WHEN** a body is produced for height 172 cm
@@ -37,7 +45,7 @@ The produced body SHALL match the given height within 0.5 cm and the given weigh
 
 #### Scenario: Weight matched
 - **WHEN** a body is produced for weight 68 kg
-- **THEN** mesh volume times configured density is between 66.64 kg and 69.36 kg
+- **THEN** mesh volume times the body density constant is between 66.64 kg and 69.36 kg
 
 ### Requirement: Cycling pose presets
 The system SHALL provide the named poses `standing`, `hoods` and `drops`, and SHALL produce the same body profile in any of them.

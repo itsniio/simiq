@@ -6,12 +6,16 @@ The shopper-facing experience: collecting body inputs with consent, showing the 
 
 ## ADDED Requirements
 
-### Requirement: Body input form
-The viewer SHALL ask for height, weight, age and sex, and SHALL offer optional chest, waist and hip girths with how-to-measure help. Validation SHALL use the same ranges as the API. The form SHALL be completable in under 30 seconds without the optional fields.
+### Requirement: Body input form follows the Figma onboarding flow
+The viewer SHALL implement the onboarding flow designed in Figma: sex, height, weight and body silhouette as required steps; age, region silhouettes and chest, waist and hip girths (with how-to-measure help) as optional. Validation SHALL use the same ranges as the API. The required steps SHALL be completable in under 30 seconds.
 
 #### Scenario: Required fields only
-- **WHEN** a shopper fills height, weight, age and sex and leaves girths empty
+- **WHEN** a shopper gives sex, height, weight and a silhouette and skips every optional step
 - **THEN** the form can be submitted
+
+#### Scenario: Matches the design
+- **WHEN** each step is compared with its Figma frame at 390 px and 1440 px width
+- **THEN** steps, fields, order and copy match the frame, and the designer has signed off the comparison screenshots
 
 #### Scenario: Missing field
 - **WHEN** height is empty and the shopper submits

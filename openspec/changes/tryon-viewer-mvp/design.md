@@ -63,17 +63,19 @@
 - **Endpoints:** `POST /v1/recommendations`, `GET /v1/garments/{id}`, `GET /healthz`.
 - **Garment bundle:** garments, fabrics and fit ranges are built from `data/` into a bundle with a version hash. The API loads it at startup and hot-reloads it on a version change.
 - **Request:**
-  `{garment_id, body: {height_cm, weight_kg, age, sex, chest_cm?, waist_cm?, hip_cm?}, pose?, lang?}`
+  `{garment_id, body: {sex, height_cm, weight_kg, silhouette, age?, regions?, chest_cm?, waist_cm?, hip_cm?}, pose?, lang?}`
+  — the body object is `BodyInputs` from `fit-engine-poc`, exported as JSON Schema for the viewer.
 - **Response:** the CLI recommendation JSON plus `body_mesh_url`, `engine_version`, `model_version` and `bundle_version`.
 - **Logging:** structured, with an allowlist of fields; body values are never in the allowlist. Error reporting strips request bodies.
-- **Access:** CORS allowlist of viewer origins. Rate limit is a token bucket per IP, default 60/min, behind the CDN or proxy.
+- **Access:** CORS allowlist of viewer origins. Rate limit is a token bucket per IP, 60/min (`RATE_LIMIT_PER_MIN`), behind the CDN or proxy.
 
 ### D4. Viewer stack
 
 - **Build and UI:** Vite + TypeScript with Preact for the form and results. The initial bundle stays small.
 - **3D:** Three.js in a code-split chunk that loads only after the form is submitted.
-- **Colors:** a diverging scale (blue = loose, neutral = ok, red = tight). Every status also gets a text label and pattern, so color is never the only cue.
-- **Languages:** SK, CS and EN via JSON message files. Wording for explanations is generated from zone + status + language templates.
+- **Form:** the onboarding flow from Figma, read frame by frame through the Figma MCP (never redrawn by eye). The frame ids are recorded in `web/viewer/docs/figma.md`.
+- **Colors:** design tokens in `web/viewer/src/tokens.css`, taken from the Figma variables; a lint fails on raw hex anywhere else. Fit statuses use a diverging scale (blue = loose, neutral = ok, red = tight), and every status also gets a text label and pattern, so color is never the only cue.
+- **Languages:** SK, CS and EN via JSON message files; a test fails on any user-facing string outside them. Wording for explanations is generated from zone + status + language templates.
 
 ### D5. Modes and messaging
 
@@ -102,6 +104,37 @@
 
 - An offline build of the viewer with the two garments and three bundled bodies, served from a laptop.
 - A recorded demo video.
+
+## Program design
+
+```
+engine/src/simiq_fit/
+  surrogate.py        sample_population(n) -> bodies; fit_surrogate(dataset) -> files;
+                      predict(inputs) -> Measurements + sds       (numpy only, no PyTorch)
+  meshgrid.py         export_grid(out_dir) -> 594 .glb files      (offline, uses body.py)
+  bundle.py           build_bundle(data_dir) -> bundle.json + version hash
+api/
+  pyproject.toml      depends on engine without the anny/torch extra
+  src/simiq_api/
+    app.py            FastAPI app: /healthz, /v1/recommendations, /v1/garments/{id};
+                      CORS allowlist, rate limit, logging allowlist
+  tests/              contract tests per spec scenario; load test script in api/docs/
+web/
+  package.json        pnpm workspace
+  viewer/src/
+    main.tsx          route: /fit (standalone or ?embed=1)
+    form/             one component per Figma step; validation shared with the API's ranges
+    result/           recommendation, zone list, size and pose switch
+    scene/            Three.js scene, loaded as a separate chunk after submit
+    embed.ts          postMessage v1: hello, ready, recommendation, select-size, close
+    api.ts            postRecommendation(), getGarment()
+    i18n.ts + locales/{sk,cs,en}.json
+    tokens.css
+```
+
+Types shared across the boundary come from one source: the API's OpenAPI document generates `web/viewer/src/api-types.ts`, so the viewer never hand-writes the response shape.
+
+Constants: `RATE_LIMIT_PER_MIN = 60`, `GRID` (sex × 3 age bands × height 150–200 / 5 × BMI 18–34 / 2), budgets 80 KB / 250 KB / 300 KB.
 
 ## Risks / Trade-offs
 
