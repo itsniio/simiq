@@ -29,3 +29,11 @@ The indices live in [`data/landmarks.json`](../../data/landmarks.json), generate
 - `measurements/landmarks-male-178-75.png`, `landmarks-female-165-60.png`, `landmarks-male-190-95.png`, `landmarks-female-175-58.png`, `landmarks-male-168-72.png`
 
 The rules are a first version. If a render shows a landmark in the wrong place, the rule changes and the file is regenerated; the landmark names stay.
+
+**Run 2026-10-14 (anny 0.6.1):** every landmark height falls in its expected range on all five bodies (c7 0.85–0.86, armpits 0.75–0.76, waist_front 0.59–0.62, hip_back 0.50–0.51, crotch 0.47–0.49 of stature). The renders show each landmark on its anatomical point, standing and in `hoods`. `hip_back` sits on the peak of one buttock, not on the midline: the rule takes the back-most point, and the buttocks bulge either side of the midline. A back-length path (task 4.4) that needs a midline point uses the midline vertex at the same height.
+
+![male 178 cm 75 kg](measurements/landmarks-male-178-75.png)
+![female 165 cm 60 kg](measurements/landmarks-female-165-60.png)
+![male 190 cm 95 kg](measurements/landmarks-male-190-95.png)
+![female 175 cm 58 kg](measurements/landmarks-female-175-58.png)
+![male 168 cm 72 kg](measurements/landmarks-male-168-72.png)

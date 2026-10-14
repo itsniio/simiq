@@ -27,7 +27,7 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 
 ## 4. Measurements
 
-- [ ] 4.1 (#16) Mark landmarks on the Anny template and store them in `data/landmarks.json`; verify by rendering landmark positions on 5 body shapes (screenshots in `engine/docs/measurements.md`)
+- [x] 4.1 (#16) Mark landmarks on the Anny template and store them in `data/landmarks.json`; verify by rendering landmark positions on 5 body shapes (screenshots in `engine/docs/measurements.md`)
 - [x] 4.2 (#17) Implement tape-style girths (convex hull perimeter of a planar section); verify against analytic cylinder and ellipse meshes within 1 mm
 - [x] 4.3 (#18) Implement upper-arm and thigh girth profiles in `PROFILE_STEP_CM` steps with interpolation; verify lookup and interpolation tests on a synthetic tapered limb
 - [ ] 4.4 (#19) Implement back length and vertical trunk girth as surface paths; verify back length in `hoods` exceeds `standing` on 10 body shapes
