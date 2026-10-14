@@ -44,7 +44,8 @@
 
 ### D4. Orders and returns
 
-- **Sources:** adapters (from `platform-adapters`), or CSV upload with columns: order id, line, variant, size label, session id (optional), timestamp, return reason.
+- **Sources:** CSV upload with columns: order id, line, variant, size label, session id (optional), timestamp, return reason; later, adapters (from `platform-adapters`).
+- **Isadore (the pilot):** a custom PHP (Nette) shop, so the CSV is their weekly order and return export. Their developers add `simiq.getSessionId()` to the order record at checkout; until they do, the linkage rate is reported as zero rather than guessed.
 - **Reason mapping:** platform reasons map to `size_too_small`, `size_too_large`, `other_fit`, `not_fit_related` and `unknown`, using one table per platform.
 
 ### D5. Metrics and statistics

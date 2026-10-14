@@ -1,0 +1,15 @@
+name: Research
+description: A question to answer or a decision to prepare. The answer becomes a decision in README (R-table) or in a change's design.md.
+labels: ["type:research", "hitl"]
+body:
+  - type: input
+    id: question
+    attributes: { label: Question }
+    validations: { required: true }
+  - type: textarea
+    id: decision
+    attributes: { label: Decision this feeds, description: "What will be decided from the answer, by whom" }
+    validations: { required: true }
+  - type: input
+    id: by_when
+    attributes: { label: Needed by }

@@ -1,11 +1,12 @@
 # Tasks
 
-Phase 2 (after 20 Nov 2026), before the pilot goes live. Depends on shop-embed-mvp; uses platform-adapters group 1 (Postgres, ingestion) or CSV.
+Phase 2 (after 20 Nov 2026), before the Isadore pilot goes live. Depends on shop-embed-mvp. Isadore runs a custom shop, so orders and returns come by CSV export (group 3); no platform adapter is needed.
 
 ## 1. Event pipeline
 
-- [ ] 1.1 Add `events` storage and `POST /v1/events` with the field allowlist; verify a test that `height_cm` is dropped and valid events are stored
-- [ ] 1.2 Add batched `sendBeacon` event sending to the loader and the viewer; verify the widget size check still passes and events arrive from the demo shop
+- [ ] 1.1 Add Postgres to `api/` with migrations for events, orders, order lines and returns; verify migrations apply and roll back on a fresh database
+- [ ] 1.2 Add `POST /v1/events` with the field allowlist; verify a test that `height_cm` is dropped and valid events are stored
+- [ ] 1.3 Add batched `sendBeacon` event sending to the loader and the viewer; verify the widget size check still passes and events arrive from the demo shop
 
 ## 2. Experiment assignment and consent
 

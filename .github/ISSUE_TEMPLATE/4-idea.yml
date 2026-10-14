@@ -1,0 +1,8 @@
+name: Idea
+description: Raw thought. Links, reels and tools go to the OS ideas registry instead; this is for a thought about this repository.
+labels: ["type:idea", "hitl"]
+body:
+  - type: textarea
+    id: thought
+    attributes: { label: The thought, description: "Brain-dump freely; it is rewritten into a Feature before any work starts" }
+    validations: { required: true }

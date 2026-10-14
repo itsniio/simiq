@@ -1,6 +1,6 @@
 # Proposal: platform-adapters
 
-> Phase 2 (pilot, after demo day 20 Nov 2026). Build only the pilot brand's platform first.
+> Waits for the first customer on Shopify, Shoptet or WooCommerce. The pilot brand, Isadore, runs a custom PHP (Nette) shop and integrates with the snippet from `shop-embed-mvp`, so the pilot needs no adapter. Build only the platform of the customer who signs.
 
 ## Why
 

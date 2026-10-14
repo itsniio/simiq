@@ -14,7 +14,7 @@ A shop SHALL be able to enable simiq by adding one script tag carrying its shop 
 - **THEN** a fit button is rendered inside the placement element
 
 ### Requirement: Shop manifest
-Each shop SHALL have a manifest that maps product identifiers to garment ids and shop size labels to garment sizes. The manifest SHALL also list allowed page origins and display settings.
+Each shop SHALL have a manifest that maps product identifiers to garment ids and shop size labels to garment sizes, with each product's price, currency and product page link. The manifest SHALL also list allowed page origins and display settings.
 
 #### Scenario: Size label mapping
 - **WHEN** the manifest maps shop label "Medium" to garment size M and the viewer recommends M

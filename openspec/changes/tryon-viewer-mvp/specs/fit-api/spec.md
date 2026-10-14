@@ -49,12 +49,16 @@ The API SHALL NOT persist body inputs or derived measurements, and SHALL NOT inc
 - **WHEN** an unexpected error occurs while handling a recommendation
 - **THEN** the error report contains no request body
 
-### Requirement: Garment information endpoint
-`GET /v1/garments/{id}` SHALL return public garment data: id, type, display name, size labels, zones with display names, and available poses.
+### Requirement: Garment information endpoints
+`GET /v1/garments` SHALL list the public data of every published garment, and `GET /v1/garments/{id}` SHALL return one: id, type, display data (names, subtitle, colors, images, key features), size labels, zones with display names, and available poses.
 
 #### Scenario: Garment info
 - **WHEN** a known garment is requested
-- **THEN** the response contains its size labels, zones and poses, and no fabric curves or fit ranges
+- **THEN** the response contains its display data, size labels, zones and poses, and no fabric curves or fit ranges
+
+#### Scenario: Catalog list
+- **WHEN** the list is requested
+- **THEN** every published garment appears once with its display data and no price
 
 ### Requirement: Versioned contract
 All endpoints except health SHALL be under a version prefix. Responses SHALL state the engine, model and data bundle versions used.
@@ -78,7 +82,7 @@ The API SHALL allow browser requests only from configured viewer origins.
 - **THEN** `/healthz` responds 200 with garment count and model version
 
 ### Requirement: Rate limiting
-The API SHALL limit requests per client IP (default 60 per minute) and respond 429 when the limit is exceeded.
+The API SHALL limit requests to 60 per minute per client IP and respond 429 when the limit is exceeded.
 
 #### Scenario: Over the limit
 - **WHEN** one client sends 61 requests within a minute

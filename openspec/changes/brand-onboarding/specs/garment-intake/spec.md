@@ -48,7 +48,7 @@ A garment SHALL become `live` only after a brand member approves it from a previ
 - **THEN** it becomes `live`
 
 ### Requirement: Turnaround tracking
-The system SHALL show each submission's target date from the configured turnaround and SHALL flag overdue submissions to staff.
+The system SHALL show each submission's target date from the turnaround constant and SHALL flag overdue submissions to staff.
 
 #### Scenario: Overdue
 - **WHEN** a submission passes its target date without reaching `in_review`

@@ -1,0 +1,30 @@
+name: Feature
+description: A capability with a testable outcome. Becomes an OpenSpec change before it is built.
+labels: ["type:feature", "hitl"]
+body:
+  - type: input
+    id: goal
+    attributes: { label: Goal, description: "One sentence, outcome not activity" }
+    validations: { required: true }
+  - type: textarea
+    id: acceptance
+    attributes: { label: Acceptance criteria, description: "Checkboxed, each independently verifiable — they become the change's scenarios and the tests" }
+    validations: { required: true }
+  - type: input
+    id: estimate
+    attributes: { label: Estimate, description: "Days, as `Estimate: 2d` — actuals are compared against it", placeholder: "Estimate: 1d" }
+    validations: { required: true }
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Who does it
+      description: "hitl = a person with an agent; afk = an agent unattended, picked up by the runtime once implement-ready. Swap the label to match."
+      options: ["hitl", "afk"]
+    validations: { required: true }
+  - type: textarea
+    id: out_of_scope
+    attributes: { label: Out of scope, description: What this explicitly does not do }
+    validations: { required: true }
+  - type: input
+    id: depends
+    attributes: { label: Depends on, description: "Issue refs, e.g. #12 #34 — also set native blocked-by relations" }
