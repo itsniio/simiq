@@ -20,7 +20,7 @@ Target: groups 1–2 in T1–T2, groups 3–5 by end of T2, groups 6–7 in T3, 
 - [ ] 3.1 (#9) Pin with the designer how each step-3 measurement is taken (the Figma "i" texts) and its range, into design D2 and `engine/docs/measurements.md`; verify `openspec validate --all --strict` passes and the designer confirms the definitions
 - [x] 3.2 (#10) Implement `BodyInputs` and validation ranges (height, weight, age, BMI, step-3 measurements, types); verify unit tests for every range edge, the height 150 / weight 150 case and the `stocky` case
 - [ ] 3.3 (#11) Implement body type and arm, torso and leg type offsets as constants on the shape parameters, and `other` built as `male`; verify the body-type, region-type and sex-other scenarios
-- [ ] 3.4 (#12) Implement phenotype fitting to height and mass with `BODY_DENSITY_KG_PER_L` and `DEFAULT_AGE`, and write the derivation in `engine/docs/formulas.md`; verify on 20 random valid inputs that height is within 0.5 cm and mass within 2 %
+- [x] 3.4 (#12) Implement phenotype fitting to height and mass with `BODY_DENSITY_KG_PER_L` and `DEFAULT_AGE`, and write the derivation in `engine/docs/formulas.md`; verify on 20 random valid inputs that height is within 0.5 cm and mass within 2 %
 - [ ] 3.5 (#13) Add the step-3 measurements as optional targets of the fit, each measured on the mesh as defined in 3.1; verify every given measurement lands within 1.0 cm on test cases
 - [ ] 3.6 (#14) Apply pose presets from `data/poses/`; verify that an unknown pose returns an error listing available poses
 - [ ] 3.7 (#15) Add a determinism test; verify two runs of the same request give identical measurements within 0.1 mm
