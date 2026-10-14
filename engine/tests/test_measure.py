@@ -85,3 +85,28 @@ def test_every_measurement_is_documented_with_a_figure():
         assert f"### `{name}`" in text, name
         figure = f"measurements/measure-{name}.png"
         assert figure in text and (docs / figure).exists(), name
+
+
+def test_unknown_pose_is_refused_with_the_available_ones():
+    # Spec scenario "Unknown pose" through the measuring entry point; fails before Anny is needed.
+    from simiq_fit.measure import measure_body
+
+    with pytest.raises(ValueError, match="unknown pose 'aero'; available: standing, hoods, drops"):
+        measure_body(None, {}, "aero")
+
+
+def test_same_request_gives_the_same_measurements():
+    # Task 3.7: two runs of one request agree within 0.1 mm (0.01 cm) in every measurement.
+    from simiq_fit.body import fit_body, load_model
+    from simiq_fit.measure import measure_body
+
+    model = load_model()
+    inputs = BodyInputs(sex="male", height_cm=181, weight_kg=78, body_type="regular")
+    runs = [measure_body(model, fit_body(model, inputs), "hoods") for _ in range(2)]
+    first, second = (
+        {**r.girths_cm, **r.lengths_cm, **{f"{k}{i}": g for k, p in r.profiles_cm.items()
+                                          for i, g in enumerate(p)}}
+        for r in runs
+    )  # fmt: skip
+    assert first.keys() == second.keys()
+    assert max(abs(first[k] - second[k]) for k in first) < 0.01

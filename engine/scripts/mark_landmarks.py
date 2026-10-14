@@ -164,7 +164,14 @@ def find_landmarks(model, vertices, faces, heads):
     hip_z = vertices[found["hip_back"], 2]
     back = np.where(midline & (vertices[:, 1] > midline_y(vertices, hip_z)))[0]
     found["hip_back_midline"] = int(back[np.argmin(np.abs(vertices[back, 2] - hip_z))])
-    return found, [int(i) for i in ring]
+    # Hip ring: the skin vertices along that fullest section, in order round the body. The hip
+    # girth is taken on these vertices in every pose, like a waistband sewn to the skin.
+    hip_ring = []
+    for point in best[1]:
+        index = nearest_vertex(vertices, point)
+        if index not in hip_ring:
+            hip_ring.append(index)
+    return found, [int(i) for i in ring], hip_ring
 
 
 def draw(ax, vertices, faces, marks, elev, azim, title):
@@ -200,7 +207,7 @@ def main():
     heads = {n: template["bone_poses"][i, :3, 3] for i, n in enumerate(model.bone_labels)}
     # Bone poses share a frame with the posed vertices (rooted at the root bone), not with
     # rest_vertices (the template's own frame), so landmarks are found on the posed standing mesh.
-    landmarks, ring = find_landmarks(model, template["vertices"], faces, heads)
+    landmarks, ring, hip_ring = find_landmarks(model, template["vertices"], faces, heads)
     missing = set(RULES) - set(landmarks)
     if missing:
         raise SystemExit(f"rules found no vertex for: {sorted(missing)}")
@@ -215,6 +222,7 @@ def main():
                 f"{importlib.metadata.version('anny')}, template body male 178 cm 75 kg",
                 "landmarks": landmarks,
                 "waist_ring": ring,
+                "hip_ring": hip_ring,
                 "rules": RULES,
             },
             indent=2,

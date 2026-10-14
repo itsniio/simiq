@@ -58,12 +58,8 @@ def lines(model, phenotype, parts, data, starts):
         v, faces, joints = posed_parts(model, phenotype, pose)
         lm = data["landmarks"]
         for name, s in girth_sections(v, faces, parts, lm, data["waist_ring"]).items():
-            loops = section_loops(v, s["faces"], s["point"], s["normal"])
-            if s["around_point"]:  # only the loop nearest the point, as the tape takes it
-                loops = [
-                    min(loops, key=lambda loop: np.linalg.norm(loop - s["point"], axis=1).min())
-                ]
-            out.setdefault(name, {})[pose] = loops
+            out.setdefault(name, {})[pose] = section_loops(v, s["faces"], s["point"], s["normal"])
+        out.setdefault("hip_girth", {})[pose] = [v[data["hip_ring"]]]
         step = PROFILE_STEP_CM / 100
         limb_faces = {"upper_arm_girth": parts["upper_arm.L"], "thigh_girth": parts["thigh.L"]}
         for name, (start, end) in limb_axes(joints, starts).items():
@@ -132,8 +128,8 @@ def ansur_check(model, parts, data, folder):
         phenotype = fit_body(model, inputs)
         v, faces, joints = posed_parts(model, phenotype, "standing")
         lm = data["landmarks"]
-        m = measure(v, faces, parts, lm, data["waist_ring"], joints, limb_starts(v, lm, joints),
-                    "standing")  # fmt: skip
+        rings = {ring: data[ring] for ring in ("waist_ring", "hip_ring")}
+        m = measure(v, faces, parts, lm, rings, joints, limb_starts(v, lm, joints), "standing")
         ours = {**m.girths_cm, **m.lengths_cm}
         ours |= {name: max(p[: 10 // PROFILE_STEP_CM + 1]) for name, p in m.profiles_cm.items()}
         cells = [

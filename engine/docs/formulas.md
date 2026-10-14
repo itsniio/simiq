@@ -105,6 +105,8 @@ Tests (`test_tape.py`), all within 1 mm:
 
 **One body part's section** (`hull_girth`). A body measurement cuts only one part's faces (measurements.md, "Which faces are cut"), and such a section is open where a neighbouring part was attached. `hull_girth` takes the convex hull of all section points of those faces, which spans the gap as the tape does. Open chains are walked from an end (an edge with one neighbour), so each comes out whole. Test: the r = 0.15 m cylinder with one of its 512 sides removed still reads 2π · 0.15 = 0.94248 m: the hull closes the 1.8 mm gap (2 · 0.15 · sin(π/512)) with the same straight side the polygon had.
 
+**A ring of skin points** (`ring_girth`). The hip girth is taken on a fixed ring of vertices (measurements.md, `hip_girth`). The ring is not planar once posed, so it is centred, its best-fit plane found as the span of its two principal directions (the first two right singular vectors of the centred points), and the tape reads the convex hull perimeter of the ring projected onto that plane. Tests: 256 points on an r = 0.15 m circle tilted 40° and shifted read 2π · 0.15 = 0.94248 m (the 256-gon is 0.024 mm short); a 0.2 m square ring with one point pushed 0.05 m in reads the square's 0.8 m.
+
 A 512-sided polygon underestimates a circle's perimeter by 2πr (π/512)² / 6 ≈ 0.006 mm at r = 0.15 m, far inside the 1 mm tolerance.
 
 ### Surface paths

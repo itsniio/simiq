@@ -144,7 +144,6 @@ LIMB_BONE_PREFIXES = (  # bones of the arms and legs; every other bone belongs t
     "upperarm", "lowerarm", "wrist", "finger", "metacarpal",
     "upperleg", "lowerleg", "foot", "toe",
 )  # fmt: skip
-ARM_BONE_PREFIXES = LIMB_BONE_PREFIXES[:5]
 SEGMENT_BONES = {
     "upper_arm.L": ("upperarm01.L", "upperarm02.L"),
     "thigh.L": ("upperleg01.L", "upperleg02.L"),
@@ -152,14 +151,12 @@ SEGMENT_BONES = {
 
 
 def body_parts(model) -> dict[str, np.ndarray]:
-    """Faces of torso, torso with legs, left upper arm, left thigh; by heaviest bone per vertex."""
+    """Faces of the torso, left upper arm and left thigh, by the heaviest bone of each vertex."""
     weights = np.asarray(model.vertex_bone_weights)
     bones = np.asarray(model.vertex_bone_indices)[np.arange(len(weights)), weights.argmax(axis=1)]
     names = np.array(model.bone_labels)[bones]
     labels = {
         "torso": ~np.array([name.startswith(LIMB_BONE_PREFIXES) for name in names]),
-        # Anny gives the buttocks to the thigh bones, so the hip girth needs the legs too.
-        "torso_and_legs": ~np.array([name.startswith(ARM_BONE_PREFIXES) for name in names]),
         **{part: np.isin(names, segment) for part, segment in SEGMENT_BONES.items()},
     }
     faces = np.asarray(model.faces)

@@ -6,6 +6,7 @@ from simiq_fit.tape import (
     hull_girth,
     limb_profile,
     profile_at,
+    ring_girth,
     surface_arc,
     surface_path,
 )
@@ -193,3 +194,19 @@ def test_hull_girth_of_a_plane_missing_the_faces_is_an_error():
     vertices, faces = tube(ellipse(0.15, 0.15), rings=4)
     with pytest.raises(ValueError, match="does not cut"):
         hull_girth(vertices, faces, [0, 0, 2], UP)
+
+
+def test_ring_girth_of_a_tilted_circle():
+    # 256 points on a circle r = 0.15 m in a plane tilted 40° about x: the tape reads 2π · 0.15
+    # = 0.94248 m whatever the tilt (the 256-gon is 0.024 mm short).
+    t = np.linspace(0, 2 * np.pi, 256, endpoint=False)
+    flat = np.column_stack([0.15 * np.cos(t), 0.15 * np.sin(t), np.zeros_like(t)])
+    a = np.radians(40)
+    tilt = np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]])
+    assert ring_girth(flat @ tilt.T + [0.3, -0.2, 1.0]) == pytest.approx(0.94248, abs=MM)
+
+
+def test_ring_girth_bridges_a_dent():
+    # A 0.2 m square ring with a point pushed 0.05 m in on one side: the tape spans it, 0.8 m.
+    ring = np.array([[0, 0, 0], [0.2, 0, 0], [0.2, 0.2, 0], [0.1, 0.15, 0], [0, 0.2, 0]])
+    assert ring_girth(ring) == pytest.approx(0.8, abs=MM)

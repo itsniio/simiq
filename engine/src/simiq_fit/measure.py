@@ -3,7 +3,7 @@
 import numpy as np
 from pydantic import BaseModel
 
-from simiq_fit.tape import girth, hull_girth, limb_profile, surface_arc, surface_path
+from simiq_fit.tape import hull_girth, limb_profile, ring_girth, surface_arc, surface_path
 
 PROFILE_STEP_CM = 2  # upper-arm and thigh girths are measured every 2 cm (design D4)
 CHEST_SEARCH_CM = (1, 10)  # the chest girth is the largest one this far below the armpits
@@ -24,19 +24,24 @@ class Measurements(BaseModel):
 
 
 def measure(
-    vertices, faces, parts, landmarks, waist_ring, joints, limb_starts, pose: str
+    vertices, faces, parts, landmarks, rings, joints, limb_starts, pose: str
 ) -> Measurements:
     """Every body measurement of a posed mesh.
 
-    parts: face indices per body part (body.body_parts); joints: bone head positions; limb_starts:
-    how far below its top joint each limb profile starts (limb_starts, from the standing body).
+    parts: face indices per body part (body.body_parts); rings: the waist_ring and hip_ring vertex
+    indices of data/landmarks.json; joints: bone head positions; limb_starts: how far below its top
+    joint each limb profile starts (limb_starts, from the standing body).
     """
     step = PROFILE_STEP_CM / 100
     limbs = {"upper_arm_girth": faces[parts["upper_arm.L"]], "thigh_girth": faces[parts["thigh.L"]]}
-    sections = girth_sections(vertices, faces, parts, landmarks, waist_ring)
+    sections = girth_sections(vertices, faces, parts, landmarks, rings["waist_ring"])
+    girths = {
+        n: hull_girth(vertices, s["faces"], s["point"], s["normal"]) for n, s in sections.items()
+    }
+    girths["hip_girth"] = ring_girth(vertices[rings["hip_ring"]])
     return Measurements(
         pose=pose,
-        girths_cm={name: 100 * section_girth(vertices, s) for name, s in sections.items()},
+        girths_cm={name: 100 * girths[name] for name in GIRTHS},
         profiles_cm={
             name: list(100 * limb_profile(vertices, limbs[name], start, end, step))
             for name, (start, end) in limb_axes(joints, limb_starts).items()
@@ -54,6 +59,7 @@ def measure_body(model, phenotype, pose: str) -> Measurements:
     from simiq_fit.landmarks import load_landmarks
     from simiq_fit.poses import load_pose
 
+    rotations = load_pose(pose)  # an unknown pose fails here, before any body is built
     data = load_landmarks()
     landmarks = data["landmarks"]
 
@@ -62,13 +68,13 @@ def measure_body(model, phenotype, pose: str) -> Measurements:
 
     standing = pose_body(model, phenotype, {})
     starts = limb_starts(standing["vertices"], landmarks, joints_of(standing))
-    posed = pose_body(model, phenotype, load_pose(pose))
+    posed = pose_body(model, phenotype, rotations)
     return measure(
         posed["vertices"],
         posed["faces"],
         body_parts(model),
         landmarks,
-        data["waist_ring"],
+        {ring: data[ring] for ring in ("waist_ring", "hip_ring")},
         joints_of(posed),
         starts,
         pose,
@@ -82,33 +88,26 @@ def torso_up(vertices, landmarks):
 
 
 def girth_sections(vertices, faces, parts, landmarks, waist_ring) -> dict[str, dict]:
-    """Where chest, waist and hip girths are taken: the faces cut, a point of the plane, its normal.
+    """Where chest and waist girths are taken: the faces cut, a point of the plane, its normal.
 
-    All three planes are square to the torso. Chest: the fullest section of the torso faces 1 to 10
-    cm below the armpits. Waist: through the centre of Anny's waist ring. Hip: level with hip_back,
-    over the seat, on torso and legs (Anny gives the buttocks to the thigh bones).
+    Both planes are square to the torso. Chest: the fullest section of the torso faces 1 to 10 cm
+    below the armpits. Waist: through the centre of Anny's waist ring.
     """
     up = torso_up(vertices, landmarks)
     torso = faces[parts["torso"]]
     armpits = (vertices[landmarks["armpit.L"]] + vertices[landmarks["armpit.R"]]) / 2
     below = np.arange(CHEST_SEARCH_CM[0], CHEST_SEARCH_CM[1] + 1) / 100
     chest = max((armpits - d * up for d in below), key=lambda p: hull_girth(vertices, torso, p, up))
-    waist = vertices[waist_ring].mean(axis=0)
-    hip = waist + ((vertices[landmarks["hip_back"]] - waist) @ up) * up
     return {
-        "chest_girth": dict(faces=torso, point=chest, normal=up, around_point=False),
-        "waist_girth": dict(faces=torso, point=waist, normal=up, around_point=False),
-        "hip_girth": dict(
-            faces=faces[parts["torso_and_legs"]], point=hip, normal=up, around_point=True
-        ),
+        "chest_girth": dict(faces=torso, point=chest, normal=up),
+        "waist_girth": dict(faces=torso, point=vertices[waist_ring].mean(axis=0), normal=up),
     }
 
 
-def section_girth(vertices, section) -> float:
-    """Tape girth of one section: around all its points, or around the loop holding its point."""
-    tape = girth if section["around_point"] else hull_girth
-    return tape(vertices, section["faces"], section["point"], section["normal"])
-
+# Profiles end this far before the elbow or knee joint: Anny's skinning gives the last few cm to the
+# forearm or calf bones, so a section there cuts only part of the limb (a thin man's arm: 20.8 cm
+# 4.4 cm before the elbow, 18.3 cm at 2.4 cm, nothing at the joint).
+LIMB_END_BEFORE_JOINT_M = 0.04
 
 LIMBS = {  # profile: (top joint, bottom joint, landmark where the limb leaves the torso)
     "upper_arm_girth": ("upperarm01.L", "lowerarm01.L", "armpit.L"),
@@ -126,11 +125,12 @@ def limb_starts(vertices, landmarks, joints) -> dict[str, float]:
 
 
 def limb_axes(joints, starts) -> dict[str, tuple]:
-    """Start and end of each limb profile along its bone; the start is fixed on the bone."""
+    """Start and end of each limb profile along its bone; both are fixed on the bone."""
     axes = {}
     for name, (top, bottom, _) in LIMBS.items():
         a, b = np.asarray(joints[top]), np.asarray(joints[bottom])
-        axes[name] = (a + starts[name] * (b - a) / np.linalg.norm(b - a), b)
+        axis = (b - a) / np.linalg.norm(b - a)
+        axes[name] = (a + starts[name] * axis, b - LIMB_END_BEFORE_JOINT_M * axis)
     return axes
 
 

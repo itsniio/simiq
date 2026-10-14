@@ -109,6 +109,15 @@ def hull_girth(vertices, faces, point, normal) -> float:
     return hull_perimeter(np.column_stack([points @ u, points @ v]))
 
 
+def ring_girth(points) -> float:
+    """Tape girth around a ring of skin points: their convex hull in the ring's best-fit plane."""
+    points = np.asarray(points, float)
+    centred = points - points.mean(axis=0)
+    # The two main directions of the points span their best-fit plane (principal components).
+    u, v = np.linalg.svd(centred, full_matrices=False)[2][:2]
+    return hull_perimeter(np.column_stack([centred @ u, centred @ v]))
+
+
 SECTION_SNAP = 0.005  # a path point farther than this from the section loop is not on it (5 mm)
 
 
