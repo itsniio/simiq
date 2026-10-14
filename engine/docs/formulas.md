@@ -44,19 +44,23 @@ Anny's age parameter is not linear in years. Anny ships its own calibration (`an
 
 Tests: the anchors 16, 18 and 64, and 35 and 90 by the formula above (`test_anny_age_interpolates_annys_calibration`).
 
-### Fitting height and weight
+### Fitting height, weight and muscle
 
-Sex, age, muscle and proportions are fixed by the inputs (muscle and proportions at 0.5 until task 3.3 maps the body types). Two Anny parameters remain, `height` h and `weight` w, both in [0, 1], and two targets, the given height H and weight M:
+Sex, age and proportions are fixed by the inputs (proportions at 0.5 until task 3.3 maps the body types). Three Anny parameters are fitted, all in [0, 1]: `height` h, `weight` w and `muscle` m, against the given height H and weight M and a prior on muscle, m₀ = `DEFAULT_MUSCLE` = 0.5 (task 3.3 will set m₀ per body type). The residuals, each divided by the size that counts as "close enough":
 
-    r(h, w) = [height_cm(mesh(h, w)) − H,  mass_kg(mesh(h, w)) − M]
+    r₁ = (height_cm(mesh) − H) / FIT_STOP_HEIGHT_CM
+    r₂ = (mass_kg(mesh) − M) / (FIT_STOP_MASS_SHARE · M)
+    r₃ = (m − m₀) / FIT_MUSCLE_PRIOR_SD
 
-Anny is differentiable, so PyTorch gives the 2 × 2 Jacobian J = ∂r/∂(h, w). With as many unknowns as targets, a Gauss-Newton step is the Newton step
+Why muscle: the first version fitted only h and w, and a 173.8 cm, 59.3 kg man (BMI 19.6) failed, because at muscle 0.5 Anny's lightest body of that height weighs 64.3 kg. Lowering muscle makes a lighter body of the same height. The prior keeps muscle at m₀ whenever weight alone can match the mass: then all three residuals can be zero, and that is the least-squares minimum. Only when w is at a bound does the mass residual pull m away from m₀; with `FIT_MUSCLE_PRIOR_SD` = 0.25 against a mass scale of 0.2 % of M, the mass wins by orders of magnitude.
 
-    (h, w) ← clamp((h, w) − clamp(J⁻¹ r, ±FIT_MAX_PARAMETER_STEP), 0, 1)
+Anny is differentiable, so PyTorch gives the 3 × 3 Jacobian J = ∂r/∂(h, w, m). Each step solves J Δ = r in the least-squares sense; a parameter sitting at a bound that Δ would push further out is frozen (its column zeroed) and the rest re-solved. Then
 
-starting from (0.5, 0.5). The step limit keeps an early, badly linearised step from jumping across the parameter range; the clamp keeps the parameters where Anny interpolates instead of extrapolating. The fit stops when the height is within `FIT_STOP_HEIGHT_CM` = 0.05 cm and the mass within `FIT_STOP_MASS_SHARE` = 0.2 % of the target, ten times tighter than the spec's 0.5 cm and 2 %. If it has not stopped after `FIT_MAX_STEPS` = 25 steps, no Anny body in range reaches the inputs and the fit raises an error with the closest height and mass it found.
+    (h, w, m) ← clamp((h, w, m) − clamp(Δ, ±FIT_MAX_PARAMETER_STEP), 0, 1)
 
-Tests: height 172 cm and weight 68 kg land within 171.5–172.5 cm and 66.64–69.36 kg; 20 random valid inputs (seeded) land within 0.5 cm and 2 % (`test_body_fit.py`).
+starting from (0.5, 0.5, m₀). The step limit keeps an early, badly linearised step from jumping across the range; the clamp keeps the parameters where Anny interpolates rather than extrapolates. The fit stops when |r₁| < 1 and |r₂| < 1, that is height within 0.05 cm and mass within 0.2 %, ten times tighter than the spec's 0.5 cm and 2 %. After `FIT_MAX_STEPS` = 30 steps without stopping, no Anny body in range reaches the inputs and the fit raises an error with the closest height and mass.
+
+Tests (`test_body_fit.py`): 172 cm and 68 kg land within 171.5–172.5 cm and 66.64–69.36 kg; 20 seeded random valid inputs land within 0.5 cm and 2 %; muscle stays at 0.5 for 180 cm, 75 kg; the 173.8 cm, 59.3 kg case is matched with muscle below 0.5.
 
 ## Tape measurements (tasks 4.2, 4.3, `tape.py`)
 

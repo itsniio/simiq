@@ -19,11 +19,12 @@ ANNY_AGE_ANCHORS = (0.0, 0.05, 0.215, 0.415, 0.67, 0.77, 0.83, 1.0)
 DEFAULT_MUSCLE = 0.5
 DEFAULT_PROPORTIONS = 0.5
 
-# Gauss-Newton fit of Anny's height and weight parameters (docs/formulas.md, "Body fit").
-FIT_MAX_STEPS = 25
+# Weighted Gauss-Newton fit of Anny's height, weight and muscle (docs/formulas.md, "Body fit").
+FIT_MAX_STEPS = 30
 FIT_MAX_PARAMETER_STEP = 0.25
 FIT_STOP_HEIGHT_CM = 0.05
 FIT_STOP_MASS_SHARE = 0.002
+FIT_MUSCLE_PRIOR_SD = 0.25  # how far muscle may drift from its prior when weight alone saturates
 
 
 def check_topology(topology: str) -> None:
@@ -68,34 +69,40 @@ def fit_body(model, inputs: BodyInputs) -> dict[str, float]:
     fixed = {
         "gender": 1.0 if inputs.sex == "female" else 0.0,  # `other` is built as male (D2)
         "age": anny_age(inputs.age or DEFAULT_AGE),
-        "muscle": DEFAULT_MUSCLE,
         "proportions": DEFAULT_PROPORTIONS,
     }
     fixed_tensors = {k: torch.tensor([v]) for k, v in fixed.items()}
     faces = torch.as_tensor(np.asarray(model.faces))
     target = torch.tensor([inputs.height_cm, inputs.weight_kg])
+    scale = torch.tensor([FIT_STOP_HEIGHT_CM, FIT_STOP_MASS_SHARE * inputs.weight_kg])
 
     def measure(x):
-        phenotype = {**fixed_tensors, "height": x[0:1], "weight": x[1:2]}
+        phenotype = {**fixed_tensors, "height": x[0:1], "weight": x[1:2], "muscle": x[2:3]}
         vertices = model(phenotype_kwargs=phenotype)["rest_vertices"][0]
         return torch.stack([height_cm(vertices), mass_kg(vertices, faces)])
 
-    x = torch.tensor([0.5, 0.5])
+    def residuals(x):
+        prior = (x[2:3] - DEFAULT_MUSCLE) / FIT_MUSCLE_PRIOR_SD
+        return torch.cat([(measure(x) - target) / scale, prior])
+
+    x = torch.tensor([0.5, 0.5, DEFAULT_MUSCLE])
     for _ in range(FIT_MAX_STEPS):
-        residual = measure(x).detach() - target
-        if (
-            abs(residual[0]) < FIT_STOP_HEIGHT_CM
-            and abs(residual[1]) < FIT_STOP_MASS_SHARE * inputs.weight_kg
-        ):
-            return {**fixed, "height": float(x[0]), "weight": float(x[1])}
-        jacobian = torch.autograd.functional.jacobian(measure, x)
-        step = torch.linalg.solve(jacobian, residual)
+        r = residuals(x).detach()
+        if abs(r[0]) < 1 and abs(r[1]) < 1:
+            return {**fixed, "height": float(x[0]), "weight": float(x[1]), "muscle": float(x[2])}
+        jacobian = torch.autograd.functional.jacobian(residuals, x)
+        step = torch.linalg.lstsq(jacobian, r.unsqueeze(1)).solution.squeeze(1)
+        # Freeze a parameter that sits at its bound and is pushed outward; re-solve the rest.
+        stuck = ((x <= 0) & (step > 0)) | ((x >= 1) & (step < 0))
+        if stuck.any():
+            free = jacobian * ~stuck
+            step = torch.linalg.lstsq(free, r.unsqueeze(1)).solution.squeeze(1) * ~stuck
         step = step.clamp(-FIT_MAX_PARAMETER_STEP, FIT_MAX_PARAMETER_STEP)
         x = (x - step).clamp(0.0, 1.0)
+    reached = measure(x).detach()
     raise ValueError(
         f"no Anny body reaches {inputs.height_cm} cm and {inputs.weight_kg} kg; "
-        f"closest: height {float(residual[0] + target[0]):.1f} cm, "
-        f"mass {float(residual[1] + target[1]):.1f} kg"
+        f"closest: height {float(reached[0]):.1f} cm, mass {float(reached[1]):.1f} kg"
     )
 
 

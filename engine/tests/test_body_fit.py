@@ -82,7 +82,13 @@ def test_twenty_random_valid_inputs_are_matched(model):
         height = float(rng.uniform(150, 200))
         weight = round(float(rng.uniform(18, 32)) * (height / 100) ** 2, 1)
         age = int(rng.integers(18, 70))
-        _, got_height, got_mass = built(model, sex=sex, height_cm=height, weight_kg=weight, age=age)
+        try:
+            _, got_height, got_mass = built(
+                model, sex=sex, height_cm=height, weight_kg=weight, age=age
+            )
+        except ValueError as error:
+            misses.append((sex, age, round(height, 1), weight, str(error)))
+            continue
         if abs(got_height - height) > 0.5 or abs(got_mass - weight) > 0.02 * weight:
             misses.append((sex, age, round(height, 1), weight, round(got_height, 1), got_mass))
     assert misses == []
@@ -98,3 +104,15 @@ def test_sex_other_is_built_as_male(model):
     other, _, _ = built(model, sex="other", height_cm=180, weight_kg=75)
     male, _, _ = built(model, sex="male", height_cm=180, weight_kg=75)
     assert other == male
+
+
+def test_muscle_stays_at_its_prior_when_weight_suffices(model):
+    phenotype, _, _ = built(model, height_cm=180, weight_kg=75)
+    assert phenotype["muscle"] == pytest.approx(0.5, abs=0.02)
+
+
+def test_thin_body_lowers_muscle_once_weight_is_at_its_minimum(model):
+    # The first miss of the two-parameter fit: 173.8 cm, 59.3 kg (BMI 19.6), male, 58 years.
+    phenotype, height, mass = built(model, height_cm=173.8, weight_kg=59.3, age=58)
+    assert abs(height - 173.8) <= 0.5 and abs(mass - 59.3) <= 0.02 * 59.3
+    assert phenotype["muscle"] < 0.5
