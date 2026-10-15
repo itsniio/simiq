@@ -1,0 +1,243 @@
+{
+ "schema_version": 1,
+ "id": "demo-green-jersey",
+ "type": "jersey",
+ "brand": "simiq-demo",
+ "model": "Green Printed Jersey (demo)",
+ "fit_block": "race",
+ "source": "brand_cad",
+ "display": {
+  "name": {
+   "sk": "Ukážkový dres",
+   "cs": "Ukázkový dres",
+   "en": "Demo jersey"
+  },
+  "subtitle": {
+   "sk": "Pretekársky strih, zelená potlač",
+   "cs": "Závodní střih, zelený potisk",
+   "en": "Race fit, green print"
+  },
+  "colors": [
+   {
+    "name": {
+     "sk": "Zelená",
+     "cs": "Zelená",
+     "en": "Green"
+    },
+    "swatch": "#1f8a4f",
+    "image": "images/demo-green.webp"
+   }
+  ],
+  "features": [
+   {
+    "sk": "Pružná pletenina",
+    "cs": "Pružný úplet",
+    "en": "Stretch knit"
+   },
+   {
+    "sk": "Tri zadné vrecká",
+    "cs": "Tři zadní kapsy",
+    "en": "Three rear pockets"
+   }
+  ]
+ },
+ "zones": [
+  {
+   "id": "chest",
+   "kind": "girth",
+   "pom": "chest_circumference",
+   "body": "chest_girth",
+   "fabric": "main",
+   "direction": "course",
+   "weight": 2.0
+  },
+  {
+   "id": "waist",
+   "kind": "girth",
+   "pom": "waist_circumference",
+   "body": "waist_girth",
+   "fabric": "main",
+   "direction": "course",
+   "weight": 1.0
+  },
+  {
+   "id": "hem",
+   "kind": "girth",
+   "pom": "hem_circumference",
+   "body": "hip_girth",
+   "fabric": "main",
+   "direction": "course",
+   "weight": 1.0
+  },
+  {
+   "id": "sleeve_opening",
+   "kind": "girth",
+   "pom": "sleeve_opening_circumference",
+   "body": "upper_arm_girth",
+   "body_at_cm": 12,
+   "fabric": "main",
+   "direction": "course",
+   "weight": 1.0
+  },
+  {
+   "id": "back_length",
+   "kind": "length",
+   "pom": "center_back_length",
+   "body": "back_length",
+   "fabric": "main",
+   "direction": "wale",
+   "weight": 1.0
+  }
+ ],
+ "sizes": [
+  {
+   "label": "XS",
+   "provenance": {
+    "by": "simiq demo",
+    "date": "2026-10-15",
+    "method": "CLO pattern length x 0.72 weft shrinkage (size M), graded by fixed steps; demo only"
+   },
+   "pom": {
+    "chest_circumference": 78.4,
+    "waist_circumference": 71.6,
+    "hem_circumference": 62.6,
+    "sleeve_opening_circumference": 22.0,
+    "center_back_length": 56.6
+   }
+  },
+  {
+   "label": "S",
+   "provenance": {
+    "by": "simiq demo",
+    "date": "2026-10-15",
+    "method": "CLO pattern length x 0.72 weft shrinkage (size M), graded by fixed steps; demo only"
+   },
+   "pom": {
+    "chest_circumference": 82.4,
+    "waist_circumference": 75.6,
+    "hem_circumference": 66.6,
+    "sleeve_opening_circumference": 23.0,
+    "center_back_length": 58.1
+   }
+  },
+  {
+   "label": "M",
+   "provenance": {
+    "by": "simiq demo",
+    "date": "2026-10-15",
+    "method": "CLO pattern length x 0.72 weft shrinkage (size M), graded by fixed steps; demo only"
+   },
+   "pom": {
+    "chest_circumference": 86.4,
+    "waist_circumference": 79.6,
+    "hem_circumference": 70.6,
+    "sleeve_opening_circumference": 24.0,
+    "center_back_length": 59.6
+   }
+  },
+  {
+   "label": "L",
+   "provenance": {
+    "by": "simiq demo",
+    "date": "2026-10-15",
+    "method": "CLO pattern length x 0.72 weft shrinkage (size M), graded by fixed steps; demo only"
+   },
+   "pom": {
+    "chest_circumference": 90.4,
+    "waist_circumference": 83.6,
+    "hem_circumference": 74.6,
+    "sleeve_opening_circumference": 25.0,
+    "center_back_length": 61.1
+   }
+  },
+  {
+   "label": "XL",
+   "provenance": {
+    "by": "simiq demo",
+    "date": "2026-10-15",
+    "method": "CLO pattern length x 0.72 weft shrinkage (size M), graded by fixed steps; demo only"
+   },
+   "pom": {
+    "chest_circumference": 94.4,
+    "waist_circumference": 87.6,
+    "hem_circumference": 78.6,
+    "sleeve_opening_circumference": 26.0,
+    "center_back_length": 62.6
+   }
+  },
+  {
+   "label": "XXL",
+   "provenance": {
+    "by": "simiq demo",
+    "date": "2026-10-15",
+    "method": "CLO pattern length x 0.72 weft shrinkage (size M), graded by fixed steps; demo only"
+   },
+   "pom": {
+    "chest_circumference": 98.4,
+    "waist_circumference": 91.6,
+    "hem_circumference": 82.6,
+    "sleeve_opening_circumference": 27.0,
+    "center_back_length": 64.1
+   }
+  }
+ ],
+ "fabrics": {
+  "main": "demo-knit"
+ },
+ "size_chart": [
+  {
+   "label": "XS",
+   "ranges": {
+    "chest": [
+     78.4,
+     90.9
+    ]
+   }
+  },
+  {
+   "label": "S",
+   "ranges": {
+    "chest": [
+     82.4,
+     95.6
+    ]
+   }
+  },
+  {
+   "label": "M",
+   "ranges": {
+    "chest": [
+     86.4,
+     100.2
+    ]
+   }
+  },
+  {
+   "label": "L",
+   "ranges": {
+    "chest": [
+     90.4,
+     104.9
+    ]
+   }
+  },
+  {
+   "label": "XL",
+   "ranges": {
+    "chest": [
+     94.4,
+     109.5
+    ]
+   }
+  },
+  {
+   "label": "XXL",
+   "ranges": {
+    "chest": [
+     98.4,
+     114.1
+    ]
+   }
+  }
+ ]
+}

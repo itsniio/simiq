@@ -11,6 +11,11 @@ __pycache__/
 # Engine spike output (meshes; renders go to engine/docs/)
 engine/out/
 
+# Licensed RenderHub jersey: the model may be used, not published
+jersey-demo/**/*.glb
+jersey-demo/simiq-anny/anny_jersey_texture.png
+jersey-demo/demo/site/jersey.png
+
 # Node and build output
 node_modules/
 dist/

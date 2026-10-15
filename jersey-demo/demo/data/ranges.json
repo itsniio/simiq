@@ -1,0 +1,52 @@
+{
+ "brand": "simiq-demo",
+ "provenance": "demo values chosen for the demo, not from try-ons",
+ "fit_blocks": {
+  "race": {
+   "chest": {
+    "kind": "girth",
+    "edges": [
+     -0.06,
+     0.0,
+     0.16,
+     0.26
+    ]
+   },
+   "waist": {
+    "kind": "girth",
+    "edges": [
+     -0.06,
+     0.0,
+     0.16,
+     0.26
+    ]
+   },
+   "hem": {
+    "kind": "girth",
+    "edges": [
+     0.0,
+     0.15,
+     0.45,
+     0.6
+    ]
+   },
+   "sleeve_opening": {
+    "kind": "girth",
+    "edges": [
+     -0.06,
+     0.0,
+     0.18,
+     0.28
+    ]
+   },
+   "back_length": {
+    "kind": "length",
+    "edges": [
+     -3,
+     0,
+     8
+    ]
+   }
+  }
+ }
+}

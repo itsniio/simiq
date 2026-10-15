@@ -1,0 +1,200 @@
+{
+ "variants": {
+  "pattern": {
+   "chest_circumference": 120.0,
+   "waist_circumference": 110.6,
+   "hem_circumference": 98.0,
+   "sleeve_opening_circumference": 33.3,
+   "center_back_length": 59.6
+  },
+  "effective": {
+   "chest_circumference": 86.4,
+   "waist_circumference": 79.6,
+   "hem_circumference": 70.6,
+   "sleeve_opening_circumference": 24.0,
+   "center_back_length": 59.6
+  }
+ },
+ "results": {
+  "pattern/standing": [
+   {
+    "zone": "chest",
+    "body_cm": 99.6,
+    "garment_cm": 120.0,
+    "strain": -0.17,
+    "ease_cm": 20.4,
+    "pressure_pa": 0,
+    "flags": []
+   },
+   {
+    "zone": "waist",
+    "body_cm": 87.7,
+    "garment_cm": 110.6,
+    "strain": -0.207,
+    "ease_cm": 22.9,
+    "pressure_pa": 0,
+    "flags": []
+   },
+   {
+    "zone": "hem",
+    "body_cm": 102.1,
+    "garment_cm": 98.0,
+    "strain": 0.042,
+    "ease_cm": null,
+    "pressure_pa": 103,
+    "flags": []
+   },
+   {
+    "zone": "sleeve_opening",
+    "body_cm": 27.1,
+    "garment_cm": 33.3,
+    "strain": -0.187,
+    "ease_cm": 6.2,
+    "pressure_pa": 0,
+    "flags": []
+   },
+   {
+    "zone": "back_length",
+    "body_cm": 63.7,
+    "garment_cm": 59.6,
+    "strain": 0.07,
+    "margin_cm": 25.7
+   }
+  ],
+  "effective/standing": [
+   {
+    "zone": "chest",
+    "body_cm": 99.6,
+    "garment_cm": 86.4,
+    "strain": 0.153,
+    "ease_cm": null,
+    "pressure_pa": 420,
+    "flags": []
+   },
+   {
+    "zone": "waist",
+    "body_cm": 87.7,
+    "garment_cm": 79.6,
+    "strain": 0.102,
+    "ease_cm": null,
+    "pressure_pa": 294,
+    "flags": []
+   },
+   {
+    "zone": "hem",
+    "body_cm": 102.1,
+    "garment_cm": 70.6,
+    "strain": 0.446,
+    "ease_cm": null,
+    "pressure_pa": 1581,
+    "flags": []
+   },
+   {
+    "zone": "sleeve_opening",
+    "body_cm": 27.1,
+    "garment_cm": 24.0,
+    "strain": 0.128,
+    "ease_cm": null,
+    "pressure_pa": 1250,
+    "flags": []
+   },
+   {
+    "zone": "back_length",
+    "body_cm": 63.7,
+    "garment_cm": 59.6,
+    "strain": 0.07,
+    "margin_cm": 25.7
+   }
+  ],
+  "pattern/hoods": [
+   {
+    "zone": "chest",
+    "body_cm": 94.8,
+    "garment_cm": 120.0,
+    "strain": -0.21,
+    "ease_cm": 25.2,
+    "pressure_pa": 0,
+    "flags": []
+   },
+   {
+    "zone": "waist",
+    "body_cm": 87.0,
+    "garment_cm": 110.6,
+    "strain": -0.213,
+    "ease_cm": 23.6,
+    "pressure_pa": 0,
+    "flags": []
+   },
+   {
+    "zone": "hem",
+    "body_cm": 98.0,
+    "garment_cm": 98.0,
+    "strain": 0.0,
+    "ease_cm": null,
+    "pressure_pa": 1,
+    "flags": []
+   },
+   {
+    "zone": "sleeve_opening",
+    "body_cm": 26.8,
+    "garment_cm": 33.3,
+    "strain": -0.195,
+    "ease_cm": 6.5,
+    "pressure_pa": 0,
+    "flags": []
+   },
+   {
+    "zone": "back_length",
+    "body_cm": 64.9,
+    "garment_cm": 59.6,
+    "strain": 0.088,
+    "margin_cm": 24.5
+   }
+  ],
+  "effective/hoods": [
+   {
+    "zone": "chest",
+    "body_cm": 94.8,
+    "garment_cm": 86.4,
+    "strain": 0.097,
+    "ease_cm": null,
+    "pressure_pa": 258,
+    "flags": []
+   },
+   {
+    "zone": "waist",
+    "body_cm": 87.0,
+    "garment_cm": 79.6,
+    "strain": 0.093,
+    "ease_cm": null,
+    "pressure_pa": 270,
+    "flags": []
+   },
+   {
+    "zone": "hem",
+    "body_cm": 98.0,
+    "garment_cm": 70.6,
+    "strain": 0.389,
+    "ease_cm": null,
+    "pressure_pa": 1359,
+    "flags": []
+   },
+   {
+    "zone": "sleeve_opening",
+    "body_cm": 26.8,
+    "garment_cm": 24.0,
+    "strain": 0.117,
+    "ease_cm": null,
+    "pressure_pa": 1137,
+    "flags": []
+   },
+   {
+    "zone": "back_length",
+    "body_cm": 64.9,
+    "garment_cm": 59.6,
+    "strain": 0.088,
+    "margin_cm": 24.5
+   }
+  ]
+ }
+}
