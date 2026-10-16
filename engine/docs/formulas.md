@@ -230,3 +230,48 @@ When confidence < `CONFIDENCE_THRESHOLD` = 0.6 the most frequent other size is n
 **Simplification until task 3.5.** Design D8 propagates deviations of the standing girths into the pose through a Jacobian computed with autograd. That needs the step-3 measurements as targets of the body fit (task 3.5). Until then the deviation of a pose measurement is taken equal to the standing one (Jacobian = identity).
 
 Tests (`test_recommend.py`, the example jersey reduced to its chest zone, sizes 80/84/88 cm, ok band 2–6 % strain, SD 0.5 cm): a 87.36 cm chest (M at 4 %, S tight at 9.2 %, L loose at −0.7 %) gives M with confidence 1.0 and no alternative. A 89.4 cm chest falls between M's ok band (up to 84 · 1.06 = 89.04 cm) and L's (from 88 · 1.02 = 89.76 cm): M tight, L loose, equal penalties, and the tie-break prefers L by 0.602 against 0.607 band widths. The draws split: L with confidence 0.53, alternative M.
+
+## Strain and pressure over a draped garment (cloth-sim-spike 3.1–3.3, `surface_strain.py`)
+
+### Course and wale strain (task 3.1)
+
+Each triangle has a rest shape in the flat pattern, corners r₀, r₁, r₂ in (course, wale) mm (`garment_mesh.py`: UV × mm per UV unit × shrinkage), and a draped shape, corners x₀, x₁, x₂ in 3D. Inside a triangle the map from pattern to drape is affine, so its derivative, the **deformation gradient** F (3 × 2), is constant and fixed by the two edges:
+
+    Dm = [r₁ − r₀, r₂ − r₀]   (2 × 2, the rest edges)
+    Ds = [x₁ − x₀, x₂ − x₀]   (3 × 2, the draped edges)
+    F · Dm = Ds   →   F = Ds · Dm⁻¹
+
+A fabric line of rest length 1 along the course (pattern axis u = (1, 0)) becomes the 3D vector F·u, the first column of F; along the wale, F·v, the second column. Their stretch ratios give
+
+    course strain = |F·u| − 1,   wale strain = |F·v| − 1
+
+the same strain as the fit engine's C_body / C_garment − 1, measured on one triangle. Rigid motion leaves |F·u| and |F·v| unchanged; shear does change the length of the line that slides (it is part of what the stretch measures, not a separate quantity here).
+
+Tests (`test_surface_strain.py`), rest triangle (0, 0), (10, 0), (0, 10) mm: laid in 3D unchanged and turned → 0, 0. Course edge to 12 mm, wale edge to 11 mm → 12/10 − 1 = 0.2 and 11/10 − 1 = 0.1. The wale corner slid 5 mm along the course → F·v = (0.5, 0, 1), |F·v| = √1.25 = 1.118034, wale 11.8 %, course 0. A rest triangle off the axes, (2, 1), (6, 4), (1, 7), with every edge doubled → 100 % both ways.
+
+### Zone means (task 3.2)
+
+A zone is a set of garment triangles (cloth-sim D3). Its value is the area-weighted mean over its triangles i of a per-triangle value sᵢ, with A the triangle's area in the drape (½ |(x₁ − x₀) × (x₂ − x₀)|):
+
+    s̄ = Σ Aᵢ sᵢ / Σ Aᵢ
+
+Triangles without a value (pressure beyond the fabric curve) are left out of both sums. Tests: areas 50 and 150 mm² at 10 % and 30 % → (5 + 45) / 200 = 25 %; a triangle 12 × 11 mm → 66 mm²; a NaN triangle beside a 50 mm² one at 10 % → 10 %.
+
+### Relative pressure from tension and curvature (task 3.3)
+
+Laplace's law for a membrane: a surface under tensions T_c, T_w (N/m) along two perpendicular directions, curved with normal curvatures κ_c, κ_w (1/m) along them, presses on what it lies on with
+
+    p = T_c · κ_c + T_w · κ_w      [Pa]
+
+On a cylinder of radius r with the course round it, κ_c = 1/r and κ_w = 0, so p = T_c / r: the fit engine's hoop formula above. Tension per direction comes from the fabric curve at the triangle's strain (`tension_n_per_m`; zero at or below 0, none beyond the curve, then the triangle has no pressure). The directions are the triangle's own course and wale lines in the drape, F·u and F·v; they are perpendicular only where the fabric is not sheared, and the spike takes them as they are. **κ is the body's** (design D4): taken on the body triangle nearest to the garment triangle, so the garment's own folds do not flip its sign.
+
+**Normal curvature on a triangle mesh.** Each vertex gets a unit normal, the mean of its triangles' normals weighted by the triangle's angle at that vertex (angle weighting keeps it radial on a cylinder however the quads are split; area weighting does not, 1.2° off on the test tube). Across a triangle the normal changes linearly, and the shape operator S (2 × 2, in an orthonormal frame of the triangle's plane) is the map from a step in the plane to the change of the normal it causes:
+
+    S · [x₁ − x₀, x₂ − x₀] = [n₁ − n₀, n₂ − n₀]   (both projected onto the plane)
+    S = P_n · P_x⁻¹, then symmetrised (S + Sᵀ)/2
+
+The normal curvature along a unit direction d in the plane is κ(d) = dᵀ S d; a direction off the plane is projected onto it first and normalised. With outward normals, convex surfaces have κ > 0. On a cylinder with vertex normals exactly radial, a step along a chord of angle θ moves the normal by the same chord of the unit circle, 2 sin(θ/2), over a step of 2r sin(θ/2): κ = 1/r exactly; along the axis the normal does not change, κ = 0.
+
+Tests: a tube of 48 chords of 20 mm has r = 20 / (2 sin(π/48)) = 10 / 0.0654031 = 152.8979 mm, and κ = 1/152.8979 round it, 0 along it. The spec's tube of 84 cm on a cylinder of 96 cm: 48 chords of 17.5 mm stretched to 20 mm, strain 20/17.5 − 1 = 0.142857; course tension on the example knit 2.0 + 0.42857 · 2.5 = 3.07143 N over 50 mm = 61.4286 N/m; p = 61.4286 / 0.1528979 = 401.76 Pa (402.04 Pa on the round cylinder of r = 0.96 / 2π, the 0.07 % being the polygon). The same tube on a body meshed with 96 chords of 10 mm: r = 5 / sin(π/96) = 5 / 0.0327191 = 152.8160 mm, p = 401.98 Pa. A tube stretched 20/12 − 1 = 66.7 %, beyond the curve's 50 %, has no pressure anywhere.
+
+As in the fit engine, p is only ever reported relative to the highest among the sizes of the same garment on the same body and pose (`relative_pressures`).
