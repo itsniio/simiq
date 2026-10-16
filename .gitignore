@@ -19,6 +19,15 @@ jersey-demo/demo/site/jersey.png
 jersey-demo/**/*.zprj
 jersey-demo/bodies/*.pc2
 jersey-demo/bodies/*.obj
+# cloth-sim spike: CLO exports are licensed garment geometry and live outside the repository
+# (SIMIQ_SPIKE_DIR); these guard against copying them in
+*.zprj
+*.zpac
+*.mcx
+*.pc2
+*.abc
+*.fbx
+spike-data/
 
 # Node and build output
 node_modules/

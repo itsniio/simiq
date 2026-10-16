@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md for why. What exists (branch `rp-anny`): Anny bodies fitted to height and weight, pose presets, landmarks and zone templates in `engine/`; CLO runs of the RenderHub jersey on four bodies in three poses, driven by point caches generated from the same bodies (`jersey-demo/scripts/clo_*.py`). CLO's Python API exports the draped garment with its UV layout (GLB/OBJ) and can change a fabric's simulation shrinkage, but does not expose its strain numbers. The jersey's CLO project uses weft shrinkage 72 %, so its sizes can be emulated by changing that one value. The founder's Mac has no CUDA; Warp runs on its CPU.
+See proposal.md for why. What exists (branch `rp-anny`): Anny bodies fitted to height and weight, pose presets, landmarks and zone templates in `engine/`; CLO runs of the RenderHub jersey on four bodies in three poses, driven by point caches generated from the same bodies (`jersey-demo/scripts/clo_*.py`). CLO's Python API exports the draped garment's frames only through the FBX cloth cache (OBJ and GLB exports ignore the animation frame), with the mesh and UV layout alongside; it can change each piece's simulation shrinkage, but does not expose its strain numbers. The jersey's CLO project uses weft shrinkage 72 %, so its sizes can be emulated by changing that one value. The founder's Mac has no CUDA; Warp runs on its CPU.
 
 ## Goals / Non-Goals
 
@@ -34,17 +34,17 @@ S, M, L are the jersey with course shrinkage 68.5 %, 72 % and 75.5 % (≈ ±4 cm
 Flat modules in `engine/src/simiq_fit/`, named for what they compute:
 
 ```
-garment_mesh.py   load GLB/OBJ with UVs → pieces, welded vertices, rest frames (u, v in mm × shrinkage)
+garment_mesh.py   load OBJ with UVs → pieces, welded vertices, rest frames (u, v in mm × shrinkage)
 drape.py          XPBD step and run(sequence) on Warp: stretch, shear, bend, collide, gravity → frames
 surface_strain.py per-triangle course/wale strain, relative pressure (D4), zone means (D3)
 ```
 
 ```
-mesh   = load_garment(clo_export.glb, shrinkage={course: 0.72, wale: 1.0})
+mesh   = load_garment(garment-uv.obj, shrinkage=per piece course %, wale 100 %)
 bodies = body_sequence(start=(178,75,'standing'), to=(h,w,pose))      # reuses clo_* logic
 frames = drape(mesh, fabric, bodies, substeps, iterations)            # last frame = settled drape
 ours   = zone_strain(mesh, frames[-1], zones)
-clo    = zone_strain(load_garment(clo_case.glb), …, zones)            # same function
+clo    = zone_strain(mesh, cases[pose-size][body], zones)            # same function, CLO's positions
 report(ours vs clo for 36 cases, timing)
 ```
 

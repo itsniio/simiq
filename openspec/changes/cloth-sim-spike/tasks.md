@@ -4,8 +4,8 @@ Time box: Fri 16 – Fri 23 Oct 2026, then go/no-go. Builds on the engine on bra
 
 ## 1. Reference data from CLO
 
-- [ ] 1.1 Export from CLO, by script, the jersey draped on all 4 bodies × 3 poses × 3 sizes (course shrinkage 68.5 / 72 / 75.5 %) as GLB with UVs, plus the starting drape on 178/75 `standing`, into the jersey's folder outside the repository; verify 37 files and a manifest listing body, pose, size and frame for each
-- [ ] 1.2 Add `.gitignore` guards for the spike's garment meshes, CLO projects and point caches; verify `git status` shows none of the exported files
+- [x] 1.1 Export from CLO, by script, the jersey draped on all 4 bodies × 3 poses × 3 sizes (course shrinkage scaled by 68.5 / 72 / 75.5 % of 72 %), plus the starting drape on 178/75 `standing`, outside the repository: the garment mesh with UVs once and every case's vertex positions (CLO writes frames only into the FBX cloth cache); verify 37 cases with one mesh and a manifest listing body, pose, size, frame and settling for each
+- [x] 1.2 Add `.gitignore` guards for the spike's garment meshes, CLO projects and point caches; verify `git status` shows none of the exported files
 
 ## 2. Garment rest state
 
