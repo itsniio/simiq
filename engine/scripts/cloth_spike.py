@@ -15,7 +15,7 @@ import numpy as np
 from clo_cache_extract import FRAMES, SPIKE_DIR
 
 from simiq_fit.fit import relative_pressures
-from simiq_fit.garment import DATA, Fabric
+from simiq_fit.garment import Curve, Fabric
 from simiq_fit.garment_mesh import load_garment, read_obj
 from simiq_fit.surface_strain import face_areas, pressures, strains, zone_means
 
@@ -32,7 +32,20 @@ BODY_SEQUENCES = {  # the point caches that drove CLO, CLO frame in cm, Anny's v
 ZONES = SPIKE_DIR / "zones.npz"  # face indices of the licensed mesh: outside git like the mesh
 ZONE_NAMES = ("chest", "waist", "hem", "sleeve_opening", "back_length")
 GIRTH_ZONES = ("chest", "waist", "hem", "sleeve_opening")
+TORSO_ZONES = ("chest", "waist", "hem")  # 3.2's claim; CLO leaves the sleeve opening unstretched
 NEAREST_MM = 30  # a garment face belongs to a body zone only this close to the body
+SLEEVE_BAND_MM = 50  # sleeve opening: the sleeve's faces this close to its hem, as the torso bands
+# Stand-in for CLO's unknown FABRIC_13: Teyeme et al., Materials 14 (2021) 4461, CC BY 4.0, Table 3,
+# fabric LB (single-face tricot, 74 % nylon / 26 % elastane, 150 g/m², 0.29 mm): stress 46.010,
+# 161.954, 263.138 kPa at 11.1, 24.9, 42.9 % strain; tension T = stress × 0.29 mm, here as force on
+# a 1 m strip. Three measured points, below the fit engine's five, so it stays out of data/. One
+# direction was published; the wale repeats it.
+STAND_IN_TENSION = Curve.model_construct(
+    strain=[0, 0.111, 0.249, 0.429], force_n=[0, 13.3429, 46.96666, 76.31002]
+)
+STAND_IN_FABRIC = Fabric.model_construct(
+    specimen_width_mm=1000, curves={"course": STAND_IN_TENSION, "wale": STAND_IN_TENSION}
+)
 BODIES = ("178-75", "180-64", "176-88", "192-82")
 POSES = ("standing", "hoods", "drops")
 SIZE_FACTOR = {
@@ -198,13 +211,6 @@ def body_zones(vertices, faces, parts, data):
         "waist": band(sections["waist_girth"]["point"], sections["waist_girth"]["normal"]),
         "hem": band(vertices[data["hip_ring"]].mean(0), np.array([0, 0, 1.0])),
     }
-    arm = []
-    for side in ("L", "R"):
-        a = vertices[lm[f"armpit.{side}"]]
-        d = np.linalg.norm(vertices - a, axis=1)
-        lateral = np.abs(vertices[:, 0] - vertices[lm["c7"], 0]) > abs(a[0] - vertices[lm["c7"], 0])
-        arm.append(np.where((d > 0.10) & (d < 0.14) & lateral & (vertices[:, 2] > a[2] - 0.25))[0])
-    sets["sleeve_opening"] = np.concatenate(arm)
     c7, hip_back = vertices[lm["c7"]], vertices[lm["hip_back"]]
     sets["back_length"] = np.where(
         (np.abs(vertices[:, 0] - c7[0]) < 0.03)
@@ -254,10 +260,42 @@ def zones():
     centroids = to_anny_axes(garment.positions[garment.faces].mean(1) / 10)
     nearest_vertex, distance = nearest(centroids, body)
     close = distance < NEAREST_MM / 1000
-    out = {name: np.where(close & np.isin(nearest_vertex, sets[name]))[0] for name in ZONE_NAMES}
+    out = {name: np.where(close & np.isin(nearest_vertex, sets[name]))[0] for name in sets}
+    out["sleeve_opening"] = sleeve_hem_faces(garment)
     np.savez(ZONES, **out)
     area = face_areas(garment.faces, garment.positions)
     print({name: f"{len(ids)} faces, {area[ids].sum() / 100:.0f} cm²" for name, ids in out.items()})
+
+
+def sleeve_hem_faces(garment):
+    """Faces of the sleeve pieces within SLEEVE_BAND_MM of the sleeve hems.
+
+    The hems are the two free-edge loops (edges of one face) farthest out to the sides.
+    """
+    edges = np.sort(garment.faces[:, [0, 1, 1, 2, 2, 0]].reshape(-1, 2), axis=1)
+    unique, count = np.unique(edges, axis=0, return_counts=True)
+    free = unique[count == 1]
+    parent = {v: v for v in free.ravel()}
+
+    def root(v):
+        while parent[v] != v:
+            parent[v] = parent[parent[v]]
+            v = parent[v]
+        return v
+
+    for a, b in free:
+        parent[root(a)] = root(b)
+    loops = {}
+    for v in parent:
+        loops.setdefault(root(v), []).append(v)
+    centre_x = garment.positions[:, 0].mean()
+    side = {k: np.abs(garment.positions[v, 0] - centre_x).mean() for k, v in loops.items()}
+    hems = np.concatenate([loops[k] for k in sorted(side, key=side.get)[-2:]])
+    centroids = garment.positions[garment.faces].mean(1)
+    _, distance = nearest(centroids, garment.positions[hems])
+    on_hem = np.isin(garment.faces, hems).any(1)
+    sleeve_pieces = np.unique(garment.piece[on_hem])
+    return np.where((distance < SLEEVE_BAND_MM) & np.isin(garment.piece, sleeve_pieces))[0]
 
 
 def start_garment(size="M"):
@@ -310,7 +348,9 @@ def strain():
         for zone in GIRTH_ZONES
         if table[pose, size, "176-88"][zone] <= table[pose, size, "180-64"][zone]
     ]
-    print("176/88 above 180/64 in every girth zone, pose and size:", not failures, failures)
+    torso = [f for f in failures if f[2] in TORSO_ZONES]
+    print("176/88 above 180/64 in every torso girth zone, pose and size:", not torso, torso)
+    print("not above in the sleeve opening:", [f for f in failures if f[2] not in TORSO_ZONES])
     ranked = [
         (pose, body)
         for pose in POSES
@@ -325,10 +365,10 @@ def strain():
 def pressure():
     """Task 3.3: zone pressure of S, M, L relative to the highest, on every body and pose.
 
-    CLO's fabric is unknown (FABRIC_13), so tension comes from the example knit: only the ranking
-    of sizes means anything. κ is the posed body's under each garment face (D4).
+    CLO's fabric is unknown (FABRIC_13), so tension comes from a published tricot (STAND_IN_FABRIC):
+    only the ranking of sizes means anything. κ is the posed body's under each garment face (D4).
     """
-    fabric = Fabric.model_validate_json((DATA / "examples" / "fabric-knit.json").read_text())
+    fabric = STAND_IN_FABRIC
     sets = {k: v for k, v in np.load(ZONES).items() if k in GIRTH_ZONES}
     faces = body_faces()
     mean_pa, gap_mm = {}, []

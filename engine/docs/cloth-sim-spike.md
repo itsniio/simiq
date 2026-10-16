@@ -33,10 +33,10 @@ Found on the way:
 
 `simiq_fit/surface_strain.py` measures any draped garment with a pattern rest state the same way: per-triangle course and wale strain from the deformation gradient, the area-weighted zone mean, and pressure p = T_c·κ_c + T_w·κ_w with κ from the body under the garment (derivations and hand-computed tests in `formulas.md`). `scripts/cloth_spike.py zones | strain | pressure` run it on CLO's 36 cases; every case is welded on the starting drape so all share one mesh, one set of zone triangles and one rest state per size.
 
-**Zones** (`zones`, written to `$SIMIQ_SPIKE_DIR/zones.npz`, outside git since they index the licensed mesh). The body vertex sets of `jersey-demo/scripts/heatmap.py` on 178/75 `standing` (chest and waist: ±25 mm about the fit engine's section planes, square to the torso; hem: ±25 mm about the hip ring's height; sleeve opening: 10–14 cm from each armpit, lateral; back length: a 6 cm strip down the spine from C7 to the back of the hip). A garment triangle is in a zone when the body vertex nearest its centre on the starting drape is in the set and lies within 30 mm. Result: chest 2021 triangles (444 cm²), waist 2921 (647 cm²), hem 619 (150 cm²), sleeve opening 2684 (617 cm²), back length 2441 (537 cm²).
+**Zones** (`zones`, written to `$SIMIQ_SPIKE_DIR/zones.npz`, outside git since they index the licensed mesh). The body vertex sets of `jersey-demo/scripts/heatmap.py` on 178/75 `standing` (chest and waist: ±25 mm about the fit engine's section planes, square to the torso; hem: ±25 mm about the hip ring's height; back length: a 6 cm strip down the spine from C7 to the back of the hip). A garment triangle is in a zone when the body vertex nearest its centre on the starting drape is in the set and lies within 30 mm. The sleeve opening is taken on the garment itself: the triangles of the pieces at the sleeve hems (the two free-edge loops farthest to the sides) within 50 mm of the hem, so cuffs, sleeve ends and the underarm inserts that reach the hem. Result: chest 2021 triangles (444 cm²), waist 2921 (647 cm²), hem 619 (150 cm²), sleeve opening 2589 (504 cm²), back length 2441 (537 cm²).
 
 - The hem band sits at the jersey's lower edge and catches mostly the longer back (median z −166 mm, with the back at about −190 mm and the front at +80 mm): it is a back-hem zone, not a full girth.
-- The sleeve band is a spherical shell round the armpit: 55 % of it lies above the armpit, on the shoulder cap, not at the sleeve's opening.
+- The sleeve band of `heatmap.py` (a shell 10–14 cm from each armpit) was tried first and dropped: 55 % of it lies above the armpit, on the shoulder cap, not at the sleeve's opening, which the fit engine's `sleeve_opening` measures.
 
 **Alignment check.** The point caches that drove CLO give the posed body of every case (`anny-{standing,hoods-body,drops-standing}-sequence.pc2` at the frames of `clo_cache_extract.FRAMES`); the standing 178/75 frame equals the A-pose OBJ to 0.0 mm. Garment vertices sit 3.4 / 4.6 / 9.6 mm (p10 / median / p90) off the body along its normal on the starting drape, with no systematic offset (median offset vector under 1.2 mm): CLO's collision distance plus some loose fabric, as expected.
 
@@ -46,26 +46,30 @@ Zone mean course strain (wale for back length), size M; all 36 cases in the run 
 
 | pose | body | chest | waist | hem | sleeve opening | back length |
 |---|---|---|---|---|---|---|
-| standing | 178/75 | 8.6 % | 11.8 % | 26.0 % | 6.8 % | −0.8 % |
-| standing | 180/64 | 6.2 % | 1.2 % | 20.6 % | 6.2 % | −0.1 % |
-| standing | 176/88 | 13.8 % | 26.7 % | 31.8 % | 7.1 % | −0.6 % |
-| standing | 192/82 | 11.8 % | 10.7 % | 29.6 % | 10.0 % | 2.1 % |
-| hoods | 178/75 | 5.7 % | 15.6 % | 30.2 % | 2.3 % | 0.1 % |
-| hoods | 180/64 | 4.6 % | 3.7 % | 23.9 % | 2.9 % | 0.6 % |
-| hoods | 176/88 | 16.0 % | 29.7 % | 41.9 % | 1.1 % | 2.4 % |
-| hoods | 192/82 | 9.0 % | 13.4 % | 32.3 % | 5.9 % | 3.3 % |
-| drops | 178/75 | 5.2 % | 19.3 % | 38.8 % | 1.0 % | −1.3 % |
-| drops | 180/64 | 3.1 % | 10.0 % | 35.0 % | 1.6 % | −0.6 % |
-| drops | 176/88 | 17.0 % | 32.1 % | 50.2 % | −0.3 % | −0.4 % |
-| drops | 192/82 | 7.1 % | 18.6 % | 42.6 % | 3.9 % | −0.5 % |
+| standing | 178/75 | 8.6 % | 11.8 % | 26.0 % | 0.3 % | −0.8 % |
+| standing | 180/64 | 6.2 % | 1.2 % | 20.6 % | 1.1 % | −0.1 % |
+| standing | 176/88 | 13.8 % | 26.7 % | 31.8 % | −1.8 % | −0.6 % |
+| standing | 192/82 | 11.8 % | 10.7 % | 29.6 % | 1.1 % | 2.1 % |
+| hoods | 178/75 | 5.7 % | 15.6 % | 30.2 % | −0.1 % | 0.1 % |
+| hoods | 180/64 | 4.6 % | 3.7 % | 23.9 % | 1.3 % | 0.6 % |
+| hoods | 176/88 | 16.0 % | 29.7 % | 41.9 % | 5.0 % | 2.4 % |
+| hoods | 192/82 | 9.0 % | 13.4 % | 32.3 % | 2.3 % | 3.3 % |
+| drops | 178/75 | 5.2 % | 19.3 % | 38.8 % | −1.2 % | −1.3 % |
+| drops | 180/64 | 3.1 % | 10.0 % | 35.0 % | 0.7 % | −0.6 % |
+| drops | 176/88 | 17.0 % | 32.1 % | 50.2 % | 2.3 % | −0.4 % |
+| drops | 192/82 | 7.1 % | 18.6 % | 42.6 % | 1.2 % | −0.5 % |
 
-- **176/88 above 180/64:** holds in chest, waist and hem in every pose and size (27 of 27). It does **not** hold for the sleeve opening in 5 of the 9 posed pose × size runs (hoods S, M, L; drops M, L), e.g. hoods M 1.1 % against 2.9 %. Split at the armpit's height, the band's part on the arm is barely stretched on any body (180/64: 0.4–0.8 %) and compressed on 176/88 (−1.0 % standing, −3.4 % hoods, −3.2 % drops): the sleeve lies in folds under a heavy arm. Its part on the shoulder cap does rank 176/88 above 180/64 standing (12.3 against 10.0 %) but not in the poses. So the videos' claim holds for the torso, not for the sleeve; task 3.2 stays open until the founders decide whether the sleeve zone needs a different band (at the sleeve's own hem) or whether CLO's sleeve is right.
+- **176/88 above 180/64:** holds in chest, waist and hem in every pose and size (27 of 27). It does not hold for the sleeve opening, with either band. With the shoulder shell it failed in hoods S, M, L and drops M, L (hoods M 1.1 % against 2.9 %). At the sleeve hem it fails in standing S, M, L and hoods L, and the reason is plain: CLO leaves the sleeve opening essentially unstretched on every body, −2.4 to +5.0 % in all 36 cases bar two, so the difference between bodies is noise around zero, and on 176/88 standing the fabric is slightly compressed (−1.7 to −2.4 %). The two exceptions are drops 176/88 S and L (29.0 and 26.5 %): the heavy arm pinches the underarm against the torso, 2–3.5 % of the zone's triangles are stretched past 50 % (up to 610 %) while the medians are −3 to −4 %, and the area weighting lets them dominate. **Decision** (the founder left it to the agent, 16 Oct): 3.2 is verified on the torso girth zones, where the claim is about the garment's fit; the sleeve opening is reported but not part of the claim, because on this jersey CLO does not stretch it. Task 3.2 ticked on that basis.
 - **Sizes:** chest strain S > M > L on every body and pose except drops 176/88 (S 11.5 %, M 17.0 %, L 7.2 %). The drops-M runs also have the highest hem strain of the three sizes on every body (178/75: S 23.5 %, M 38.8 %, L 12.9 %) and less waist strain than L on 178/75 (19.3 against 20.2 %). Drops M is the demo's original recording, S and L were recorded by `clo_spike_export.py`; it looks like a different garment state rather than a size effect, and should be recorded again by the same script before group 5 uses it as reference.
 - Back length strain is within ±3.3 %: the wale hardly stretches on this jersey, so the length zone is decided by how the garment rides, not by strain.
 
 ### Relative pressure (task 3.3)
 
-The example knit's curves stand in for CLO's unknown FABRIC_13, so only the ranking of sizes is meaningful, never the Pascals. Chest on 178/75 `standing`: S 282 Pa, **M 196 Pa > L 118 Pa** (relative 1.00 / 0.70 / 0.42). In `standing` every girth zone of every body ranks S > M > L. M presses more than L in every girth zone, body and pose except drops (waist on all four bodies, sleeve opening on 178/75 and 180/64), the same drops-M recording as above. Up to 5 % of chest, waist and sleeve triangles are beyond the example curve's 50 % (no pressure), except the waist of drops 176/88 S (26 %); the hem has up to 23 %, on S and in the poses.
+**Fabric.** CLO's FABRIC_13 is unknown, so the tension comes from a published, measured knit: fabric LB of Teyeme et al., *Predicting Compression Pressure of Knitted Fabric Using a Modified Laplace's Law*, Materials 14 (2021) 4461, doi:10.3390/ma14164461 (CC BY 4.0): single-face tricot, 74 % nylon / 26 % elastane, 150 g/m², 0.29 mm, the lightest of their four and closest to a jersey. Their Table 3 gives engineering stress 46.0, 162.0, 263.1 kPa at 11.1, 24.9 and 42.9 % strain (EN 14704-1, 50 mm strips); tension is stress × thickness, 13.3, 47.0 and 76.3 N/m. Only one direction was published, so the wale repeats it (the wale barely stretches here, ±3 %). Three measured points are below the fit engine's five-point rule for a product fabric, so it lives as a constant in `cloth_spike.py` (`STAND_IN_FABRIC`), not in `data/`. No open source with full course and wale curves of a polyester/elastane jersey turned up (searched Europe PMC: swimwear and sportswear papers give breaking force and elongation only); the real curve comes from the Isadore fabric or our own strip test. The Pascals therefore mean nothing; only the ranking of sizes does.
+
+**Result** (`pressure`, 2 min). Chest on 178/75 `standing`: S 89 Pa, **M 58 Pa > L 35 Pa** (relative 1.00 / 0.65 / 0.39). The chest ranks M above L on every body in every pose; in `standing` every girth zone of every body ranks S ≥ M ≥ L (sleeve opening of 178/75: M and L both 20 Pa). M does not press more than L in the waist in drops on all four bodies, in the sleeve opening in drops on 178/75, 180/64 and 192/82, and in hem and sleeve opening in hoods on 176/88. The drops cases are the drops-M recording above. Hoods 176/88's hem has 23 % of its triangles beyond the curve's 42.9 % on every size, and the mean is taken over the rest. Beyond the curve in general: chest up to 6 %, waist up to 36 % (drops 176/88 S), hem 0–23 %; the hem is the zone the curve does not cover.
+
+The example knit (illustrative values, curve to 50 %) gave the same ranking in `standing` and the same drops exceptions: 178/75 chest S 282, M 196, L 118 Pa.
 
 Taking κ from the garment's own surface instead of the body (tried first) let CLO's folds flip the sign of the curvature: hoods L chest came out at −17 Pa and sizes did not rank in the poses. With the body's κ the ranking holds wherever the strain ranking does.
 

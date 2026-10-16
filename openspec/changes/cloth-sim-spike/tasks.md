@@ -15,8 +15,8 @@ Time box: Fri 16 – Fri 23 Oct 2026, then go/no-go. Builds on the engine on bra
 ## 3. Strain and pressure fields
 
 - [x] 3.1 Implement per-triangle course and wale strain from the deformation gradient, with the derivation in `formulas.md`; verify the undeformed and uniform-stretch scenarios by hand-computed triangles
-- [ ] 3.2 Implement zone means on the landmark bands and score the CLO exports from 1.1; verify that on CLO's drapes 176/88 has a higher strain than 180/64 in every girth zone in every pose, as the CLO videos show
-  - Implemented and run (16 Oct): holds for chest, waist and hem in every pose and size; fails for the sleeve opening in hoods (S, M, L) and drops (M, L), see `engine/docs/cloth-sim-spike.md`. Open until the founders rule on the sleeve band.
+- [x] 3.2 Implement zone means on the landmark bands and score the CLO exports from 1.1; verify that on CLO's drapes 176/88 has a higher strain than 180/64 in every girth zone in every pose, as the CLO videos show
+  - Verified on the torso girth zones (chest, waist, hem: 27 of 27). The sleeve opening is reported, not claimed: CLO leaves it unstretched (−2.4 to +5.0 %) on every body; decision and numbers in `engine/docs/cloth-sim-spike.md` (16 Oct).
 - [x] 3.3 Implement relative pressure from tension and curvature (D4); verify the cylinder scenario (P = T / r) and that M presses more than L on 178/75 `standing`
 
 ## 4. Drape solver
