@@ -7,7 +7,7 @@ Drapes a garment made of a measured fabric on a posed body and derives the strai
 ## ADDED Requirements
 
 ### Requirement: Garment rest state from the flat pattern
-The simulation SHALL take a sewn garment mesh whose UV coordinates are the flat pattern in millimetres, and SHALL use those UV coordinates, scaled by the fabric's simulation shrinkage per direction, as the unstretched shape of every triangle. Vertices of different pattern pieces that coincide in the draped garment SHALL be joined as seams.
+The simulation SHALL take a sewn garment mesh whose UV coordinates are the flat pattern with the grain along v, SHALL convert them to millimetres with the export's scale per UV axis, and SHALL use them, scaled by the fabric's simulation shrinkage per direction, as the unstretched shape of every triangle. Vertices of different pattern pieces that coincide in the draped garment SHALL be joined as seams, never joining two vertices of the same piece.
 
 #### Scenario: Rest lengths come from the pattern
 - **WHEN** a triangle's UV edge is 10.0 mm long along the course direction and the course shrinkage is 72 %
@@ -16,6 +16,10 @@ The simulation SHALL take a sewn garment mesh whose UV coordinates are the flat 
 #### Scenario: Seams are joined
 - **WHEN** two pattern pieces share a sewn edge whose vertices coincide within 0.5 mm in the draped garment
 - **THEN** those vertices move as one in the simulation
+
+#### Scenario: A folded binding keeps its shape
+- **WHEN** both edges of a binding folded over another piece's edge lie within 0.5 mm of the same vertex
+- **THEN** only the nearer one is joined to it and no triangle collapses
 
 #### Scenario: Missing pattern coordinates
 - **WHEN** a garment mesh has no UV coordinates or a triangle with zero UV area

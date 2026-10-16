@@ -9,8 +9,8 @@ Time box: Fri 16 – Fri 23 Oct 2026, then go/no-go. Builds on the engine on bra
 
 ## 2. Garment rest state
 
-- [ ] 2.1 Implement `garment_mesh.py`: load a GLB/OBJ with UVs, split pattern pieces, weld coinciding vertices (≤ 0.5 mm), build per-triangle rest frames from UV in mm × shrinkage; verify the rest-length, seam and missing-UV scenarios with hand-made meshes
-- [ ] 2.2 Load the CLO starting drape; verify the welded mesh is one connected garment and print piece count, vertex count and seam length against the DXF
+- [x] 2.1 Implement `garment_mesh.py`: load an OBJ with UVs, split pattern pieces, weld coinciding vertices of different pieces (≤ 0.5 mm, nearest first, never two of one piece), build per-triangle rest frames from UV × the export's mm per UV unit × shrinkage; verify the rest-length, seam and missing-UV scenarios with hand-made meshes
+- [x] 2.2 Load the CLO starting drape; verify the welded mesh is one connected garment and print piece count, vertex count, seam length and the pieces' outline length against the DXF
 
 ## 3. Strain and pressure fields
 
