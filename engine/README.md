@@ -1,6 +1,7 @@
 # engine — `simiq_fit`
 
 The fit engine (fit-engine-poc). Python 3.12, managed with [uv](https://docs.astral.sh/uv/).
+Where it stands, for the team (Slovak): [docs/stav-fit-enginu.md](docs/stav-fit-enginu.md).
 
 ```sh
 cd engine
