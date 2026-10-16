@@ -1,0 +1,13 @@
+{
+ "frames": 375,
+ "fps": 30,
+ "segment_start": {
+  "standing": 15
+ },
+ "mid_hold_frame": {
+  "apose/180-64": 82,
+  "apose/176-88": 172,
+  "apose/192-82": 262,
+  "apose/178-75": 352
+ }
+}

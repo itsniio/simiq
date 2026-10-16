@@ -13,7 +13,23 @@ Záloha práce s dresom „Mens Cycling Jersey – Green Printed“ z RenderHubu
 - `fit/` – rozmery dresu odmerané zo strihu (`poms.json`) a výsledky enginu po zónach (`fit.json`)
 - `demo/data/` – ukážkový dres v 6 veľkostiach, ukážková látka a hranice, odporúčania pre 45 mužských postáv
 - `demo/site/` – dáta pre budúcu demo stránku (geometria a telá z Anny; textúra `jersey.png` sa sem kopíruje len lokálne)
-- `scripts/` – skripty, ktorými to vzniklo (cesty v nich ukazujú do dočasného pracovného priečinka)
+- `scripts/` – skripty, ktorými to vzniklo (cesty v starších ukazujú do dočasného pracovného priečinka)
+- `videos/` – rovnaký dres M na štyroch telách (178/75, 180/64, 176/88, 192/82) v troch polohách, simulácia v CLO (16. 10. 2026)
+  - `simiq-{hoods,drops,standing}-sequence.mp4` – telo sa plynule mení, 6 pohľadov (potlač a heatmapa spredu, zozadu, z boku, šikmo)
+  - `simiq-{hoods,drops,standing}-comparison.png` – 4 telá × 5 pohľadov
+  - `simiq-all-poses.mp4`, `simiq-poses-summary.png` – všetky tri polohy spolu
+- `bodies/` – časovanie animácií (ktorá snímka patrí ktorému telu)
+
+## Ako vznikli videá v `videos/`
+
+1. `clo_bodies.py`, `clo_sequence.py`, `clo_poses.py`, `clo_standing.py` (spúšťať v `engine/` cez `uv run python …`) vyrobia z Anny animácie `.pc2` v súradniciach CLO. Každá začína presne tam, kde stojí telo v projekte CLO (odchýlka pod 0,001 mm), a telo sa medzi postavami mení plynule, aby dres nebolo treba nasadzovať nanovo.
+2. V CLO: otvoriť projekt s Anny 178/75, v Animation Editore zmazať starú nahrávku dresu a potom starú animáciu tela (v tomto poradí, inak dres ostane v starom tvare), načítať `.pc2` (Import Point Cache, cm), nastaviť End Frame a nahrať tlačidlom Record.
+3. `clo_export_views.py` (Edit → Python Script v CLO) vyexportuje videá z pohľadov; pohľad priamo zozadu je klávesa 8 v 3D okne.
+4. `compose.py` z nich poskladá videá s popiskami a prehľadové obrázky.
+
+Stoj sa simuluje zvlášť z pôvodného nasadenia dresu v stoji. Po jazde by spodný okraj ostal nakrivo, lebo zdvihnuté ľavé koleno vytlačí dres nahor a látka sa trením sama nestiahne.
+
+`.pc2` animácie (spolu ~400 MB) a projekty `.zprj` (obsahujú kúpený dres) nie sú v gite, sú len na Macu v `simiq-anny/bodies/`.
 
 ## Dôležité pri čítaní čísel
 

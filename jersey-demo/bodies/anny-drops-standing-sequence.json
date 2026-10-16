@@ -1,0 +1,18 @@
+{
+ "frames": 915,
+ "fps": 30,
+ "segment_start": {
+  "drops": 105,
+  "standing": 555
+ },
+ "mid_hold_frame": {
+  "drops/180-64": 172,
+  "drops/176-88": 262,
+  "drops/192-82": 352,
+  "drops/178-75": 442,
+  "apose/180-64": 622,
+  "apose/176-88": 712,
+  "apose/192-82": 802,
+  "apose/178-75": 892
+ }
+}
