@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-WELD_MM = 0.5  # vertices of different pieces closer than this in the drape are one seam vertex
+WELD_MM = 1.0  # pieces closer than this in the drape are sewn; CLO's pocket seam is 0.5–1 mm apart
 MIN_UV_AREA = 1e-12  # UV units², below it a triangle has no pattern shape
 
 

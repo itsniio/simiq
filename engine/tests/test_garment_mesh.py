@@ -53,14 +53,14 @@ def two_pieces(gap_mm):
 
 
 def test_seams_are_joined(tmp_path):
-    mesh = load_garment(write(tmp_path, obj_text(two_pieces(0.4))), UV_MM, [(1, 1), (1, 1)])
+    mesh = load_garment(write(tmp_path, obj_text(two_pieces(0.9))), UV_MM, [(1, 1), (1, 1)])
     assert len(mesh.positions) == 4  # 6 corners, 2 of them welded across the seam
     assert mesh.piece.tolist() == [0, 1]
     assert len(set(mesh.faces[0]) & set(mesh.faces[1])) == 2  # the shared seam edge
 
 
 def test_vertices_farther_than_the_weld_distance_stay_apart(tmp_path):
-    mesh = load_garment(write(tmp_path, obj_text(two_pieces(0.6))), UV_MM, [(1, 1), (1, 1)])
+    mesh = load_garment(write(tmp_path, obj_text(two_pieces(1.1))), UV_MM, [(1, 1), (1, 1)])
     assert len(mesh.positions) == 6
 
 

@@ -23,14 +23,16 @@ Time box: Fri 16 – Fri 23 Oct 2026, then go/no-go. Builds on the engine on bra
 
 - [x] 4.1 Implement XPBD stretch (course, wale, shear) with compliance from the fabric curve, and gravity; verify the hanging-strip scenario at 20 % strain within 1 percentage point
 - [x] 4.2 Add bending and body collision with thickness and friction; verify a garment tube on a cylinder settles at 14.3 % course strain with no vertex inside the surface
-- [ ] 4.3 Drive the body through the point-cache sequence (shared with `jersey-demo/scripts/clo_*.py`); verify the no-penetration and determinism scenarios on 178/75 → 176/88 `hoods`
-  - Run 18 Oct: two runs agree to 0.0000 mm; 99.96–100 % of vertices outside at every recorded frame; but up to 4.25 mm inside at the armpit crease, where the posed Anny's arm and torso meet. CLO's own drape of the same case fails the 2 mm limit worse (144 vertices, down to 6.19 mm; drops to 14 mm). Open until the founders restate the limit (outside the body's creases, or no worse than CLO); see `engine/docs/cloth-sim-spike.md`.
+- [x] 4.3 Drive the body through the point-cache sequence (shared with `jersey-demo/scripts/clo_*.py`); verify the no-penetration and determinism scenarios on 178/75 → 176/88 `hoods`
+  - Run 18 Oct: two runs agree to 0.0000 mm; 99.96–100 % of vertices outside at every recorded frame; but up to 4.25 mm inside at the armpit crease, where the posed Anny's arm and torso meet. CLO's own drape of the same case fails the 2 mm limit worse (144 vertices, down to 6.19 mm; drops to 14 mm). Founder ruling 7 (18 Oct): the depth limit is CLO's drape of the same case; ours at the settled frame 204 has no vertex inside (deepest +1.78 mm against CLO's −6.19 mm), so the scenario passes; see `engine/docs/cloth-sim-spike.md`.
 - [x] 4.4 Time one garment on one body on the Mac and choose the particle distance (design open question); verify and record the timing in the report
 
 ## 5. Comparison and decision
 
 - [ ] 5.1 Fit the course and wale stiffness scales on 178/75 `standing` M against CLO; verify the fitted case agrees within 1 percentage point per zone
-- [ ] 5.2 Run all 35 held-out cases with `engine/scripts/cloth_spike.py` and write `engine/docs/cloth-sim-spike.md` (per-zone table, size ranking, timing, renders side by side); verify the report states pass or fail per the acceptance scenarios
+  - Run 18 Oct: course ×1, wale ×4 of the stand-in tricot, 1.00 points rms; waist +1.28 and sleeve opening −1.55 points miss the 1 point, so not met; see `engine/docs/cloth-sim-spike.md`.
+- [x] 5.2 Run all 35 held-out cases with `engine/scripts/cloth_spike.py` and write `engine/docs/cloth-sim-spike.md` (per-zone table, size ranking, timing, renders side by side); verify the report states pass or fail per the acceptance scenarios
+  - Report 18 Oct: no-go. Zones within ±3 points on 4 of 35 held-out cases (fail); chest size ranking as CLO's 12 of 12, 56.6 s per garment, no case deeper than CLO's (pass). Main cause: the jersey creeps up in the posed sequences.
 - [ ] 5.3 Founders read the report and sign go or no-go in it; on go, open the follow-up change that revises R1
 
 ## Workflow follow-up

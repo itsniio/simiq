@@ -90,14 +90,85 @@ Run times on the Mac: `zones` 16 s, `strain` 6 s for 36 cases, `pressure` 2 min 
 
 - *The zipper.* `load_garment` kept only the FABRIC_13 pieces, so the jersey was open at the front: within 0.2 s the front panels lost 13.7 points of course strain and the chest went from 7.9 % to 0.6 %. The zipper tapes (`Fabric628555`, UV is a texture, not a pattern) are now `trims`: each triangle rests in its drape shape, they weld to the fronts and to each other, and they are 100 × the knit's stiffness (a guess for a woven tape). With them the chest holds at 6.5–7 % on the start body.
 - *The collision distance.* CLO keeps the garment 4.6 mm off the avatar (start drape: p1 4.58, median 4.73 mm). With the design's 2 mm the garment first moved 2.6 mm inward with no contact and no friction; `COLLISION_MM` is now CLO's 4.6 mm.
-- *The pocket layer.* Cloth does not collide with cloth here, so the back pockets (pieces 1, 12) fell through the back panel to the body (median 25 mm). They now keep 2.2 mm more off the body, as in CLO (pocket p5 6.7–6.8 mm, back panel 4.6 mm). The silicone hem gripper and the zipper teeth are still left out.
+- *The pockets.* Cloth does not collide with cloth here, so the back pockets (pieces 1, 12) fell through the back panel to the body (median 25 mm). First fix: keep them 2.2 mm further off the body (CLO: pocket p5 6.7–6.8 mm, back panel 4.6 mm). That held them up but let them lift off the back like a chord (median 8 → 14 mm off the body) and go slack (waist zone pocket triangles −0.6 % against CLO's 8.3 %). The cause was the weld: the pockets' bottom seam lies 0.5–1 mm off the back panel in CLO's drape, so at 0.5 mm it was never sewn (32 shared vertices; 125 at 1 mm, no degenerate triangle). `WELD_MM` is now 1 mm, and the pockets are a layer kept 2.2 mm off the back panel (the one place cloth meets cloth, formulas.md). Pocket triangles in the waist zone: 11.0 % against CLO's 8.6 %. The silicone hem gripper and the zipper teeth are still left out.
 
 The sleeves still ride 7–13 mm up the arm on the start body and the pocket edge moves; whether that matters is for group 5's zone comparison.
 
-**4.3 Body sequence.** 178/75 → 176/88 `hoods` through CLO's own point cache (`anny-m176-88-morph-hoods.pc2`: morph 40 frames, settle 15, pose 120, hold 30), size M:
+**4.3 Body sequence.** 178/75 → 176/88 `hoods` through CLO's own point cache (`anny-m176-88-morph-hoods.pc2`: morph 40 frames, settle 15, pose 120, hold 30), size M, final solver (after group 5's changes below):
 
 - *Determinism:* two runs agree to 0.0000 mm (colour-ordered Gauss-Seidel, no atomics).
-- *Penetration* (winding-number inside test): 99.96–100 % of vertices outside at all 14 recorded frames, so the 99 % part holds. The "none more than 2 mm inside" part does not: one to five vertices of the underarm inserts and side panels go 2–4.25 mm inside at frames 45, 60, 90 and 135, all in the armpit crease where the posed Anny's arm and torso meet. CLO's own M drapes fail the same check worse: hoods 176/88 99.04 % outside, 144 vertices below −2 mm, deepest −6.19 mm; every hoods and drops case has vertices below −2 mm, drops down to −14.15 mm. Task 4.3 stays open for the founders to restate the limit (outside the body's own creases, or no worse than CLO).
+- *Penetration* (winding-number inside test): 100.00 % of vertices outside at all 14 recorded frames; the deepest vertex is 0.87 mm off the skin (frame 120). The first solver of 18 Oct let one to five armpit vertices go 2–4.25 mm inside (frames 45–135), where the posed Anny's arm and torso meet. CLO's own M drapes are worse on the same check: hoods 176/88 99.04 % outside, 144 vertices below −2 mm, deepest −6.19 mm; every hoods and drops case has vertices below −2 mm, drops down to −14.15 mm. Founder ruling 7 (18 Oct) makes the depth limit CLO's drape of the same case, so 4.3 passes; group 5 checks it on all 36 cases (36 of 36).
 - The angle-weighted normal's sign called one armpit vertex inside when it was 4.6 mm outside; inside is now confirmed by winding number before a vertex is pushed.
 
-**4.4 Timing** (`timing`, Apple M3 Pro, Warp 1.18 on one CPU core): 39,045 triangles, 19,740 vertices, 6.80 s of sequence at 500 substeps/s × 2 passes: setup 1.7 s, simulation 55.7 s (8.2 s per simulated second), **57.4 s total**, under the 60 s budget with CLO's 10 mm mesh as it is, so the particle distance stays 10 mm. Where it went, per substep: triangles 3.2 ms per pass, bending 1.0 ms, collision 2.4 ms (15 ms with a BVH query per vertex; now the last nearest face is tried first and one vertex in four asks the BVH), body refit 2.8 ms while it moves. Asking the BVH for one vertex in 16 instead of 4 takes 52 s but lets the armpit vertices go 5.7 mm deep.
+**4.4 Timing** (`timing`, Apple M3 Pro, Warp 1.18 on one CPU core, final solver): 39,045 triangles, 19,603 vertices, 6.80 s of sequence at 500 substeps/s × 2 passes: setup 1.9 s, simulation 54.7 s (8.0 s per simulated second), **56.6 s total**, under the 60 s budget with CLO's 10 mm mesh as it is, so the particle distance stays 10 mm. Per substep: triangles 3.2 ms per pass, bending 1.0 ms, collision 2.4 ms (15 ms with a BVH query per vertex; now the last nearest face is tried first and one vertex in four asks the BVH), body refit 2.8 ms while it moves. Nine sequences run side by side on the 11 cores (one process each) in 2.3–4.6 min.
+
+
+## Comparison with CLO and recommendation (tasks 5.1, 5.2), 18 Oct 2026
+
+**Recommendation: no-go for now.** Against the acceptance scenarios: sizes rank like CLO's in chest strain on all 12 body × pose pairs (pass), one garment on one body takes 56.6 s (pass), and no case goes deeper into the body than CLO's drape of it (36 of 36, ruling 7). But only **4 of 35** held-out cases have every zone within ±3 points of CLO, so the report recommends no-go (spec: "any of those conditions fails"). The failures have one main cause, found but not fixed: in the posed sequences the jersey creeps up the body (below). Standing on the first bodies of a sequence it agrees well.
+
+**How it was run.** `simulate <pose> <size>` drives our drape through the very point cache that drove CLO's run of that pose (and, for `hoods` and `drops`, first through the 178/75 A-pose → hoods animation that brought CLO's garment there: those caches start in the pose, 672 mm from the starting drape's body) and saves our garment at CLO's case frames; nine runs side by side, 2.3–4.6 min each. `report` scores both with the same zone metric (group 3) and checks penetration with the winding-number test. Fabric: the stand-in tricot × the fitted scales.
+
+**5.1 Fit.** Course and wale tension scales on a 5 × 5 grid (×0.25 … ×4), the case settling 3 s on 178/75 `standing` from CLO's starting drape: best course ×1, wale ×4, 1.00 points rms. Per zone, ours − CLO: chest +0.13, waist +1.28, hem +0.85, sleeve opening −1.55, back length +0.41 points. Waist and sleeve miss the 1 point, so 5.1 is not met. Only the course/wale ratio matters much (×1/×2: 1.02 rms); the chest ranges 3.2–11.7 % over the grid.
+
+**5.2 All cases**, ours / CLO (ours − CLO) in % course strain (wale for back length), worst zone in points, and the deepest vertex (mm off the skin, negative inside) of ours and CLO's:
+
+| pose | size | body | chest | waist | hem | sleeve_opening | back_length | worst | deepest ours / CLO mm |
+|---|---|---|---|---|---|---|---|---|---|
+| standing | S | 178-75 | 9.9 / 12.0 (-2.2) | 24.0 / 17.2 (+6.8) | 27.5 / 32.0 (-4.6) | -3.7 / 0.4 (-4.0) | -1.2 / -1.1 (-0.1) | 6.8 | 3.5 / 3.1 |
+| standing | S | 180-64 | 8.9 / 9.3 (-0.4) | 5.8 / 3.9 (+1.9) | 23.7 / 26.8 (-3.1) | -0.6 / 1.3 (-1.9) | -0.5 / -0.2 (-0.2) | 3.1 | 4.6 / 3.9 |
+| standing | S | 176-88 | 17.0 / 17.4 (-0.5) | 31.4 / 33.0 (-1.5) | 40.9 / 38.3 (+2.5) | -6.8 / -1.7 (-5.1) | -1.7 / -1.0 (-0.7) | 5.1 | 2.2 / -3.1 |
+| standing | S | 192-82 | 13.5 / 15.3 (-1.7) | 15.4 / 15.7 (-0.3) | 32.4 / 35.8 (-3.4) | -1.6 / 1.7 (-3.3) | -0.3 / 1.9 (-2.3) | 3.4 | 4.5 / 4.0 |
+| standing | M | 178-75 (fitted) | 6.8 / 8.6 (-1.8) | 26.7 / 11.9 (+14.8) | 20.1 / 26.0 (-5.9) | -3.3 / 0.3 (-3.6) | -0.1 / -0.7 (+0.6) | 14.8 | 3.7 / 3.6 |
+| standing | M | 180-64 | 6.1 / 6.2 (-0.1) | 2.8 / 1.4 (+1.4) | 18.5 / 20.7 (-2.2) | -0.7 / 1.1 (-1.8) | -0.3 / -0.1 (-0.2) | 2.2 | 4.6 / 4.1 |
+| standing | M | 176-88 | 13.4 / 13.8 (-0.4) | 25.7 / 26.9 (-1.1) | 34.9 / 31.8 (+3.0) | -5.4 / -1.8 (-3.6) | -1.7 / -0.5 (-1.2) | 3.6 | 2.4 / -0.4 |
+| standing | M | 192-82 | 10.7 / 11.8 (-1.1) | 10.6 / 10.8 (-0.2) | 26.9 / 29.6 (-2.7) | -1.4 / 1.1 (-2.5) | -0.1 / 2.2 (-2.3) | 2.7 | 4.6 / 3.9 |
+| standing | L | 178-75 | 4.0 / 5.4 (-1.3) | 16.8 / 7.1 (+9.7) | 13.7 / 20.8 (-7.1) | -2.7 / 0.1 (-2.8) | -4.1 / -0.6 (-3.4) | 9.7 | 3.8 / 3.4 |
+| standing | L | 180-64 | 3.6 / 3.5 (+0.1) | 0.8 / 0.5 (+0.4) | 13.7 / 15.4 (-1.6) | -0.8 / 0.8 (-1.6) | -0.1 / -0.1 (-0.0) | 1.6 | 4.5 / 4.0 |
+| standing | L | 176-88 | 10.4 / 9.6 (+0.7) | 23.6 / 21.2 (+2.4) | 28.1 / 26.8 (+1.3) | -5.1 / -2.4 (-2.6) | -1.3 / -0.7 (-0.6) | 2.6 | 2.4 / -2.9 |
+| standing | L | 192-82 | 7.7 / 8.2 (-0.5) | 16.4 / 6.2 (+10.3) | 17.2 / 24.0 (-6.7) | -1.0 / 1.0 (-2.0) | -2.8 / 1.6 (-4.4) | 10.3 | 4.6 / 4.0 |
+| hoods | S | 178-75 | 5.7 / 8.0 (-2.3) | 34.2 / 20.2 (+13.9) | 20.8 / 28.3 (-7.4) | -5.5 / -0.9 (-4.6) | -5.1 / -1.3 (-3.7) | 13.9 | 1.3 / -4.6 |
+| hoods | S | 180-64 | 5.1 / 5.5 (-0.4) | 23.6 / 6.4 (+17.3) | 14.0 / 22.9 (-8.9) | -1.3 / 1.1 (-2.3) | -0.5 / -0.8 (+0.3) | 17.3 | 1.2 / -3.8 |
+| hoods | S | 176-88 | 14.0 / 18.9 (-4.9) | 44.1 / 34.0 (+10.1) | 32.5 / 42.5 (-10.0) | -7.4 / 3.7 (-11.1) | -3.9 / -0.7 (-3.2) | 11.1 | 1.9 / -5.6 |
+| hoods | S | 192-82 | 9.9 / 9.9 (-0.0) | 27.5 / 17.2 (+10.3) | 17.1 / 30.3 (-13.1) | -2.5 / 1.4 (-3.9) | -3.0 / -1.0 (-2.0) | 13.1 | 1.8 / -4.6 |
+| hoods | M | 178-75 | 3.0 / 5.7 (-2.7) | 30.6 / 15.8 (+14.8) | 16.3 / 30.2 (-13.9) | -5.0 / -0.1 (-4.9) | -2.8 / 0.3 (-3.1) | 14.8 | 1.8 / -4.7 |
+| hoods | M | 180-64 | 2.7 / 4.6 (-1.8) | 15.0 / 3.9 (+11.1) | 7.2 / 23.9 (-16.8) | -1.0 / 1.3 (-2.3) | -3.1 / 0.7 (-3.7) | 16.8 | 2.9 / -6.4 |
+| hoods | M | 176-88 | 10.9 / 16.0 (-5.1) | 37.9 / 29.9 (+8.1) | 21.7 / 41.9 (-20.2) | -7.0 / 5.0 (-12.0) | -2.5 / 2.5 (-5.1) | 20.2 | 2.8 / -6.2 |
+| hoods | M | 192-82 | 6.7 / 9.0 (-2.4) | 27.5 / 13.6 (+13.9) | 10.4 / 32.3 (-21.9) | -2.0 / 2.3 (-4.3) | -2.2 / 3.5 (-5.7) | 21.9 | 2.2 / -5.9 |
+| hoods | L | 178-75 | 0.6 / 2.7 (-2.1) | 25.2 / 11.4 (+13.8) | 12.2 / 20.3 (-8.1) | -4.0 / -1.5 (-2.5) | -2.3 / -0.8 (-1.5) | 13.8 | 2.9 / -4.7 |
+| hoods | L | 180-64 | 0.8 / 1.1 (-0.3) | 11.4 / 2.2 (+9.3) | 5.6 / 13.5 (-7.8) | -1.1 / 0.4 (-1.5) | 0.1 / -0.3 (+0.4) | 9.3 | 2.3 / -3.1 |
+| hoods | L | 176-88 | 8.2 / 11.5 (-3.3) | 34.3 / 23.3 (+11.0) | 21.9 / 33.3 (-11.4) | -5.8 / -0.9 (-4.8) | -0.8 / -0.5 (-0.3) | 11.4 | 2.6 / -5.9 |
+| hoods | L | 192-82 | 5.1 / 3.9 (+1.2) | 21.3 / 8.8 (+12.5) | 11.9 / 22.1 (-10.2) | -1.4 / 0.5 (-1.9) | 1.4 / -0.4 (+1.7) | 12.5 | 1.9 / -2.9 |
+| drops | S | 178-75 | 5.2 / 8.8 (-3.5) | 39.7 / 29.7 (+10.0) | 20.1 / 23.5 (-3.5) | -5.9 / 1.8 (-7.7) | -2.9 / -1.9 (-1.0) | 10.0 | 0.7 / -11.7 |
+| drops | S | 180-64 | 3.7 / 6.6 (-2.9) | 34.0 / 25.8 (+8.3) | 21.2 / 14.7 (+6.5) | -1.6 / -1.4 (-0.2) | -3.6 / -1.4 (-2.2) | 8.3 | 0.7 / -8.7 |
+| drops | S | 176-88 | 12.7 / 11.5 (+1.2) | 49.7 / 39.5 (+10.2) | 34.1 / 35.2 (-1.1) | -8.1 / 29.0 (-37.1) | -5.9 / -2.5 (-3.4) | 37.1 | 1.2 / -14.7 |
+| drops | S | 192-82 | 8.0 / 11.2 (-3.3) | 37.1 / 32.2 (+4.9) | 18.4 / 22.5 (-4.2) | -3.5 / -0.2 (-3.3) | -3.7 / -1.8 (-1.9) | 4.9 | 0.7 / -11.6 |
+| drops | M | 178-75 | 3.0 / 6.9 (-3.9) | 33.1 / 23.4 (+9.7) | 16.5 / 18.9 (-2.4) | -5.1 / 0.0 (-5.2) | -4.2 / -1.5 (-2.7) | 9.7 | 0.2 / -12.3 |
+| drops | M | 180-64 | 1.9 / 5.1 (-3.2) | 30.5 / 19.6 (+10.9) | 14.7 / 12.2 (+2.5) | -1.1 / -2.7 (+1.6) | -3.6 / -1.2 (-2.5) | 10.9 | 0.2 / -12.1 |
+| drops | M | 176-88 | 9.8 / 9.4 (+0.4) | 46.1 / 32.7 (+13.5) | 27.1 / 31.2 (-4.1) | -7.3 / 17.4 (-24.8) | -3.9 / -2.2 (-1.7) | 24.8 | 1.4 / -11.6 |
+| drops | M | 192-82 | 5.7 / 9.4 (-3.7) | 32.5 / 25.9 (+6.6) | 20.4 / 17.8 (+2.6) | -2.2 / -1.6 (-0.6) | -2.7 / -1.5 (-1.2) | 6.6 | 0.6 / -14.1 |
+| drops | L | 178-75 | 1.0 / 4.4 (-3.3) | 30.2 / 20.3 (+9.9) | 20.5 / 13.0 (+7.5) | -4.4 / 0.9 (-5.3) | -3.1 / -1.4 (-1.7) | 9.9 | 1.1 / -14.4 |
+| drops | L | 180-64 | 0.2 / 2.7 (-2.5) | 27.5 / 16.3 (+11.1) | 18.0 / 8.1 (+9.9) | -1.0 / -1.2 (+0.2) | -1.6 / -0.7 (-0.9) | 11.1 | 0.7 / -12.1 |
+| drops | L | 176-88 | 7.8 / 7.2 (+0.6) | 36.5 / 29.1 (+7.3) | 29.3 / 23.1 (+6.2) | -6.3 / 26.5 (-32.8) | -2.4 / -2.1 (-0.3) | 32.8 | 1.7 / -13.8 |
+| drops | L | 192-82 | 3.4 / 6.5 (-3.1) | 27.8 / 22.5 (+5.3) | 20.3 / 13.0 (+7.3) | -2.0 / -0.2 (-1.8) | -4.3 / -0.1 (-4.2) | 7.3 | 0.8 / -17.9 |
+
+Summary: held-out cases within ±3 points in every zone 4 of 35 (standing M 180/64, 192/82; standing L 180/64, 176/88). Chest size ranking as CLO's 12 of 12. Deepest vertex no deeper than CLO's 36 of 36: ours stays 0.2–4.6 mm off the skin everywhere, CLO's goes up to 17.9 mm inside in `drops`.
+
+Renders (course strain, CLO above, ours below; blue −30 %, white 0, red +30 %): [standing M 192/82](cloth-sim-spike/standing-M-192-82.png) (agrees), [hoods M 176/88](cloth-sim-spike/hoods-M-176-88.png) and [drops M 180/64](cloth-sim-spike/drops-M-180-64.png) (do not).
+
+### Why the posed cases fail
+
+- **The jersey creeps up in the posed sequences.** The hem edge ends 80–140 mm above CLO's in every `hoods` case (p90 up to 289 mm) and 107 mm on standing 178/75 after the other three bodies; on standing 180/64, the first body of its sequence, 6 mm. Traced through hoods M: during the lead-in pose the hem rises 87 mm relative to the hip ring, then keeps rising with every body change while the pose stays (78 → 163 mm over the four bodies). Nothing pulls it back down: with inertia scaled × 1000 the cloth falls at g/1000, and friction only acts on vertices the collision pushed in that substep, so fabric hovering just off the skin slides freely. In `hoods` the waist zone then reads +8 to +17 points and the hem −7 to −22. Fixes to try next, in order: static friction that persists while a vertex stays within a fraction of a millimetre of the skin; gravity at full strength with the iteration count that converges without inertia scaling (8 passes at 1000 substeps/s ≈ 4× the time); and the silicone gripper as part of the cloth instead of a friction coefficient.
+- **Sleeves and shoulders.** Ours compresses the upper sleeve and shoulder (sleeve opening −0.6 to −8.1 % in every case, where CLO has −2.7 to +5 % outside the pinched drops 176/88); our bending and shear are guesses, and CLO's sleeve opening is near zero strain, so a few points of difference fail the ±3. In drops 176/88 CLO's sleeve zone reads +17 to +29 % from a pinched underarm (group 3); ours does not pinch.
+- **Pockets.** One back pocket can still lift off and go slack (white patch in the standing render).
+
+### Solver changes made in group 5 (all in `drape.py` / `garment_mesh.py`, with tests)
+
+1. **Lead-in to the pose.** CLO's `hoods` and `drops` runs start from a garment already posed; the first comparison started ours from the A-pose drape inside a posed body, and the garment fell through it (waist strain 300 %, vertices 96 mm inside).
+2. **Weld at 1 mm** (spec scenario changed from 0.5 mm): the back pockets' bottom seam lies 0.5–1 mm off the back panel in CLO's drape and was never sewn, so the pocket lifted off like a chord. Pocket triangles in the waist went from −0.6 % to 11.0 % (CLO 8.6 %).
+3. **Pockets as a layer** on the back panel (2.2 mm), replacing the extra body distance.
+4. **Inelastic contact:** a collision push no longer becomes a velocity off the surface.
+5. **Inertia scaling is a parameter**, and **the body carries the cloth on it** (`carry`): with natural mass, 500 × 2 passes did not converge (every stiffness gave the same drape, 3.46 points rms); with inertia × 1000 the cloth could not follow a body that got shorter (hem 156 mm high on standing 178/75). Carrying cut that to 67 mm (107 mm again with the gripper friction below) but not the creep in the poses.
+6. **Friction per vertex** and 1.5 under the silicone hem gripper: it changed the posed cases by less than their scatter, which is how the creep was traced to vertices out of contact rather than to sliding under load.
+
+Results before these changes, for the record: first comparison (no lead-in) 4 of 35, ranking 4 of 12; with lead-in, pocket layer and 1 mm weld 5 of 35, ranking 12 of 12; with the body carrying the cloth 4 of 35, ranking 12 of 12; final (gripper friction) 4 of 35, 12 of 12.

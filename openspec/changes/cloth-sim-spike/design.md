@@ -13,7 +13,7 @@ See proposal.md for why. What exists (branch `rp-anny`): Anny bodies fitted to h
 ## Decisions
 
 ### D1. Start from a draped garment, not from flat pieces
-The solver's first state is CLO's drape of the jersey on Anny 178/75 standing; seams are welded where vertices of different pieces coincide (≤ 0.5 mm), and each triangle's rest shape is its UV triangle in mm, scaled by shrinkage (course ×0.72 for the jersey). CLO's UV space is not square (538.01 mm per u unit, 763.79 mm per v unit for this export, fitted from the DXF) and has every piece's grain along v, so u is the course. From there the body follows the same point-cache sequence that drove CLO (morph between bodies, then pose).
+The solver's first state is CLO's drape of the jersey on Anny 178/75 standing; seams are welded where vertices of different pieces coincide (≤ 1 mm; 0.5 mm until 18 Oct, which left the back pockets' bottom seam, 0.5–1 mm apart in CLO's drape, unsewn), and each triangle's rest shape is its UV triangle in mm, scaled by shrinkage (course ×0.72 for the jersey). CLO's UV space is not square (538.01 mm per u unit, 763.79 mm per v unit for this export, fitted from the DXF) and has every piece's grain along v, so u is the course. From there the body follows the same point-cache sequence that drove CLO (morph between bodies, then pose).
 *Alternative:* arrange DXF pieces around the body and sew them, as CLO does. Weeks of work and a different source of error; it comes after the spike (founder ruling 4).
 
 ### D2. XPBD on triangles in Warp

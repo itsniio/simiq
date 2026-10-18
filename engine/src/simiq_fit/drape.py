@@ -17,14 +17,14 @@ GRAVITY_M_S2 = 9.81
 SUBSTEPS_PER_S = 500
 ITERATIONS = 2
 DAMPING_PER_S = 2.0  # velocity decays by e^(−2·t)
-MASS_SCALE = 1000.0  # inertia × this, weight unchanged: same settled drape, faster convergence
 SHEAR_N_PER_M = 20.0  # in-plane shear stiffness; not measured, a spike guess
 COMPRESSION_SCALE = (
     0.1  # a knit buckles when pushed: compression resists at 10 % of the first slope
 )
 BENDING_N_M = 1e-6  # bending rigidity, the order of a light knit's; a spike guess
 COLLISION_MM = 4.6  # the garment keeps this far off the body: CLO's start drape, p1 4.58 mm
-FRICTION = 0.3  # Coulomb coefficient between fabric and skin
+FRICTION = 0.3  # Coulomb coefficient between fabric and skin (cloth's default per vertex)
+CARRY_MM = 10.0  # cloth this close to the body moves with it before each substep is solved
 QUERY_MM = 15.0  # how far from the body a vertex is looked up: well past any collision distance
 
 wp.config.quiet = True
@@ -45,14 +45,18 @@ class Cloth:
     v: wp.array  # (n,) vec3 velocities, m/s
     previous: wp.array  # (n,) vec3 positions at the start of the substep
     inv_mass: wp.array  # (n,) 1/kg (scaled inertia), 0 for pinned vertices
-    collision: wp.array  # (n,) how far each vertex keeps off the body, m
+    friction: wp.array  # (n,) Coulomb coefficient of each vertex against what it touches
     force: wp.array  # (n,) vec3 force on each vertex: its weight plus any load, N
     lam: wp.array  # (m,) vec3 λ of each triangle's course, wale and shear constraint
     hinge_lam: wp.array  # (h,) λ of each hinge
-    contact_face: wp.array  # (n,) body face the vertex touches this substep, −1 if none
-    contact_uv: wp.array  # (n,) vec2 barycentric point on that face
     contact_push: wp.array  # (n,) vec3 how far collision pushed the vertex this substep, m
     near_face: wp.array  # (n,) body face last found nearest, −1 before the first lookup
+    near_uv: wp.array  # (n,) vec2 barycentric point on it
+    near_distance: wp.array  # (n,) signed distance from it, m
+    layer_mesh: wp.Mesh | None  # the under layer's faces over x, when a layer lies on another
+    layer_ids: wp.array | None  # vertices of the upper layer
+    layer_side: wp.array | None  # which side of the under layer each starts on, ±1
+    layer_distance: float  # how far the upper layer keeps off the under one, m
     course: tuple  # (strain, tension N/m) arrays of the fabric curve
     wale: tuple
 
@@ -132,14 +136,19 @@ def cloth(
     pinned=(),
     force_n=None,
     stiffness_scale=None,
-    collision_mm=None,
+    layer=None,
+    inertia_scale=1.0,
+    friction=None,
 ) -> Cloth:
     """A cloth ready to simulate: rest triangles (course, wale) mm, faces, positions mm.
 
     force_n: (n, 3) external force per vertex in N, e.g. a load hung on an edge.
     stiffness_scale: (m,) multiplier of each triangle's stretch and shear stiffness (a zipper tape).
-    collision_mm: (n,) distance each vertex keeps off the body, default COLLISION_MM; more for a
-    layer lying on another (a pocket), since cloth does not collide with cloth here.
+    layer: (upper vertex ids, under-layer faces, distance mm): the one place cloth meets cloth,
+    the upper layer kept on the side of the under one it starts on.
+    inertia_scale: inertia × this, weight unchanged: the settled state is the same, a heavy load
+    on light cloth converges, but the cloth falls that much slower (only for load tests).
+    friction: (n,) Coulomb coefficient per vertex, default FRICTION (a silicone gripper more).
     """
     faces = np.asarray(faces)
     rest = np.asarray(rest_mm, float) / 1000
@@ -148,14 +157,14 @@ def cloth(
     mass = np.zeros(len(positions_mm))
     for k in range(3):
         np.add.at(mass, faces[:, k], area * fabric.weight_g_m2 / 1000 / 3)
-    inv_mass = np.where(mass > 0, 1 / np.maximum(mass * MASS_SCALE, 1e-30), 0.0)
+    inv_mass = np.where(mass > 0, 1 / np.maximum(mass * inertia_scale, 1e-30), 0.0)
     inv_mass[np.asarray(pinned, int)] = 0.0
     x = np.asarray(positions_mm, float) / 1000
     force = np.zeros_like(x) if force_n is None else np.array(force_n, float)
     force[:, 1] -= mass * GRAVITY_M_S2
     stencils, weights, stiffness = hinges(faces, rest, area)
     n = len(x)
-    return Cloth(
+    c = Cloth(
         faces=wp.array(faces.astype(np.int32), dtype=wp.vec3i),
         dm_inv=wp.array(np.linalg.inv(dm), dtype=wp.mat22),
         area=wp.array(area, dtype=float),
@@ -171,21 +180,32 @@ def cloth(
         v=wp.zeros(n, dtype=wp.vec3),
         previous=wp.array(x, dtype=wp.vec3),
         inv_mass=wp.array(inv_mass, dtype=float),
-        collision=wp.array(
-            np.asarray(np.full(n, COLLISION_MM) if collision_mm is None else collision_mm, float)
-            / 1000,
-            dtype=float,
-        ),
+        friction=wp.array(np.full(n, FRICTION) if friction is None else friction, dtype=float),
         force=wp.array(force, dtype=wp.vec3),
         lam=wp.zeros(len(faces), dtype=wp.vec3),
         hinge_lam=wp.zeros(len(stencils), dtype=float),
-        contact_face=wp.full(n, -1, dtype=int),
-        contact_uv=wp.zeros(n, dtype=wp.vec2),
         contact_push=wp.zeros(n, dtype=wp.vec3),
         near_face=wp.full(n, -1, dtype=int),
+        near_uv=wp.zeros(n, dtype=wp.vec2),
+        near_distance=wp.zeros(n, dtype=float),
+        layer_mesh=None,
+        layer_ids=None,
+        layer_side=None,
+        layer_distance=0.0,
         course=curve_arrays(fabric, "course"),
         wale=curve_arrays(fabric, "wale"),
     )
+    if layer is not None:
+        upper, under, distance_mm = layer
+        upper = np.setdiff1d(upper, np.asarray(under).ravel())  # sewn vertices belong to both
+        c.layer_mesh = wp.Mesh(
+            points=c.x, indices=wp.array(np.asarray(under, np.int32).ravel(), dtype=int)
+        )
+        c.layer_ids = wp.array(upper.astype(np.int32), dtype=int)
+        c.layer_side = wp.zeros(len(upper), dtype=float)
+        c.layer_distance = distance_mm / 1000
+        wp.launch(layer_sides, len(upper), [c.layer_mesh.id, c.layer_ids, c.x, c.layer_side])
+    return c
 
 
 def body(positions_mm, faces) -> Body:
@@ -345,6 +365,7 @@ def solve_hinges(
     lams[h] = lams[h] + dl
 
 
+LAYER_QUERY_MM = 20.0  # how far from the under layer an upper-layer vertex is looked up
 REFRESH_EVERY = 4  # each substep one vertex in 4 looks its nearest body face up afresh
 
 
@@ -353,14 +374,13 @@ def collide(
     mesh: wp.uint64,
     x: wp.array(dtype=wp.vec3),
     w: wp.array(dtype=float),
-    collision: wp.array(dtype=float),
     near_face: wp.array(dtype=int),
-    contact_face: wp.array(dtype=int),
-    contact_uv: wp.array(dtype=wp.vec2),
+    near_uv: wp.array(dtype=wp.vec2),
+    near_distance: wp.array(dtype=float),
     contact_push: wp.array(dtype=wp.vec3),
     step: int,
 ):
-    """Push a vertex closer than its collision distance to the body (or inside it) out to it.
+    """Push a vertex closer than COLLISION_MM to the body (or inside it) out to that distance.
 
     The body face found nearest last time is tried first: if the vertex projects inside it, that
     is the closest point; otherwise, and for one vertex in REFRESH_EVERY, the BVH is asked.
@@ -411,12 +431,75 @@ def collide(
         signed = distance * query.sign
         u = query.u
         v = query.v
-    if signed < collision[i]:
-        target = p + n * collision[i]
+    near_uv[i] = wp.vec2(u, v)
+    near_distance[i] = signed
+    if signed < COLLISION_MM / 1000.0:
+        target = p + n * (COLLISION_MM / 1000.0)
         contact_push[i] = contact_push[i] + (target - x[i])
-        contact_face[i] = face
-        contact_uv[i] = wp.vec2(u, v)
         x[i] = target
+
+
+@wp.kernel
+def layer_sides(
+    mesh: wp.uint64,
+    ids: wp.array(dtype=int),
+    x: wp.array(dtype=wp.vec3),
+    side: wp.array(dtype=float),
+):
+    t = wp.tid()
+    q = wp.mesh_query_point_sign_normal(mesh, x[ids[t]], LAYER_QUERY_MM / 1000.0)
+    side[t] = 1.0
+    if q.result:
+        p = wp.mesh_eval_position(mesh, q.face, q.u, q.v)
+        if wp.dot(x[ids[t]] - p, wp.mesh_eval_face_normal(mesh, q.face)) < 0.0:
+            side[t] = -1.0
+
+
+@wp.kernel
+def collide_layer(
+    mesh: wp.uint64,
+    ids: wp.array(dtype=int),
+    side: wp.array(dtype=float),
+    x: wp.array(dtype=wp.vec3),
+    w: wp.array(dtype=float),
+    contact_push: wp.array(dtype=wp.vec3),
+    distance: float,
+):
+    """Keep an upper-layer vertex `distance` off the under layer, on its own side."""
+    i = ids[wp.tid()]
+    if w[i] == 0.0:
+        return
+    q = wp.mesh_query_point_sign_normal(mesh, x[i], LAYER_QUERY_MM / 1000.0)
+    if not q.result:
+        return
+    p = wp.mesh_eval_position(mesh, q.face, q.u, q.v)
+    n = wp.mesh_eval_face_normal(mesh, q.face) * side[wp.tid()]
+    h = wp.dot(x[i] - p, n)
+    if h < distance:
+        contact_push[i] = contact_push[i] + (distance - h) * n
+        x[i] = x[i] + (distance - h) * n
+
+
+@wp.kernel
+def carry(
+    mesh: wp.uint64,
+    body_previous: wp.array(dtype=wp.vec3),
+    x: wp.array(dtype=wp.vec3),
+    w: wp.array(dtype=float),
+    near_face: wp.array(dtype=int),
+    near_uv: wp.array(dtype=wp.vec2),
+    near_distance: wp.array(dtype=float),
+):
+    """Move a vertex lying on the body (within CARRY_MM) by the body's own move at that point."""
+    i = wp.tid()
+    face = near_face[i]
+    if w[i] == 0.0 or face < 0 or near_distance[i] > CARRY_MM / 1000.0:
+        return
+    uv = near_uv[i]
+    b = wp.mesh_get(mesh).indices
+    old = uv[0] * body_previous[b[3 * face]] + uv[1] * body_previous[b[3 * face + 1]]
+    old = old + (1.0 - uv[0] - uv[1]) * body_previous[b[3 * face + 2]]
+    x[i] = x[i] + wp.mesh_eval_position(mesh, face, uv[0], uv[1]) - old
 
 
 @wp.kernel
@@ -437,13 +520,11 @@ def predict(
     previous: wp.array(dtype=wp.vec3),
     w: wp.array(dtype=float),
     force: wp.array(dtype=wp.vec3),
-    contact_face: wp.array(dtype=int),
     contact_push: wp.array(dtype=wp.vec3),
     dt: float,
 ):
     i = wp.tid()
     previous[i] = x[i]
-    contact_face[i] = -1
     contact_push[i] = wp.vec3()
     if w[i] > 0.0:
         v[i] = v[i] + dt * w[i] * force[i]
@@ -452,36 +533,32 @@ def predict(
 
 @wp.kernel
 def update_velocity(
-    mesh: wp.uint64,
-    body_previous: wp.array(dtype=wp.vec3),
     x: wp.array(dtype=wp.vec3),
     v: wp.array(dtype=wp.vec3),
     previous: wp.array(dtype=wp.vec3),
-    contact_face: wp.array(dtype=int),
-    contact_uv: wp.array(dtype=wp.vec2),
     contact_push: wp.array(dtype=wp.vec3),
+    friction: wp.array(dtype=float),
     dt: float,
 ):
-    """Velocity from the move; in contact, Coulomb friction against the body's own motion."""
+    """Velocity from the move; a pushed vertex does not bounce off and has Coulomb friction.
+
+    The push of a collision is a position change, so it would otherwise leave the vertex flying
+    off the surface; contact is inelastic. The surface counts as still: the body's own move was
+    already given to every vertex on it by `carry`.
+    """
     i = wp.tid()
     vel = (x[i] - previous[i]) / dt
-    face = contact_face[i]
-    if face >= 0:
-        uv = contact_uv[i]
-        b = wp.mesh_get(mesh).indices
-        old = uv[0] * body_previous[b[3 * face]] + uv[1] * body_previous[b[3 * face + 1]]
-        old = old + (1.0 - uv[0] - uv[1]) * body_previous[b[3 * face + 2]]
-        body_vel = (wp.mesh_eval_position(mesh, face, uv[0], uv[1]) - old) / dt
-        push = contact_push[i]
-        normal_dv = wp.length(push) / dt
-        rel = vel - body_vel
-        n = wp.vec3()
-        if normal_dv > 1.0e-12:
-            n = push / wp.length(push)
-        tangential = rel - wp.dot(rel, n) * n
+    push = contact_push[i]
+    pushed = wp.length(push)
+    if pushed > 1.0e-12:
+        n = push / pushed
+        away = wp.dot(vel, n)
+        if away > 0.0:
+            vel = vel - away * n
+        tangential = vel - wp.dot(vel, n) * n
         speed = wp.length(tangential)
         if speed > 1.0e-12:
-            vel = vel - tangential * wp.min(1.0, FRICTION * normal_dv / speed)
+            vel = vel - tangential * wp.min(1.0, friction[i] * pushed / dt / speed)
     v[i] = vel * wp.exp(-DAMPING_PER_S * dt)
 
 
@@ -497,14 +574,16 @@ def run(
     n = c.x.shape[0]
     steps = round(seconds * substeps_per_s)
     for step in range(steps):
-        args = [c.x, c.v, c.previous, c.inv_mass, c.force, c.contact_face, c.contact_push, dt]
-        wp.launch(predict, n, args)
         if body is not None:
             wp.copy(body.previous, body.mesh.points)
             if body.moving:
                 args = [body.start, body.end, (step + 1) / steps, body.mesh.points]
                 wp.launch(lerp_body, body.start.shape[0], args)
                 body.mesh.refit()
+                args = [body.mesh.id, body.previous, c.x, c.inv_mass, c.near_face, c.near_uv]
+                wp.launch(carry, n, [*args, c.near_distance])
+        args = [c.x, c.v, c.previous, c.inv_mass, c.force, c.contact_push, dt]
+        wp.launch(predict, n, args)
         c.lam.zero_()
         c.hinge_lam.zero_()
         for _ in range(iterations):
@@ -514,22 +593,11 @@ def run(
         for ids in c.hinge_colours:
             args = [ids, c.hinges, c.hinge_k, c.hinge_stiffness, c.x, c.inv_mass, c.hinge_lam, dt]
             wp.launch(solve_hinges, ids.shape[0], args)
+        if c.layer_mesh is not None:
+            c.layer_mesh.refit()
+            args = [c.layer_mesh.id, c.layer_ids, c.layer_side, c.x, c.inv_mass, c.contact_push]
+            wp.launch(collide_layer, c.layer_ids.shape[0], [*args, c.layer_distance])
         if body is not None:
-            args = [body.mesh.id, c.x, c.inv_mass, c.collision, c.near_face, c.contact_face]
-            wp.launch(collide, n, [*args, c.contact_uv, c.contact_push, step])
-        if body is None:
-            wp.launch(update_velocity_free, n, [c.x, c.v, c.previous, dt])
-        else:
-            args = [body.mesh.id, body.previous, c.x, c.v, c.previous, c.contact_face, c.contact_uv]
-            wp.launch(update_velocity, n, [*args, c.contact_push, dt])
-
-
-@wp.kernel
-def update_velocity_free(
-    x: wp.array(dtype=wp.vec3),
-    v: wp.array(dtype=wp.vec3),
-    previous: wp.array(dtype=wp.vec3),
-    dt: float,
-):
-    i = wp.tid()
-    v[i] = (x[i] - previous[i]) / dt * wp.exp(-DAMPING_PER_S * dt)
+            args = [body.mesh.id, c.x, c.inv_mass, c.near_face, c.near_uv, c.near_distance]
+            wp.launch(collide, n, [*args, c.contact_push, step])
+        wp.launch(update_velocity, n, [c.x, c.v, c.previous, c.contact_push, c.friction, dt])

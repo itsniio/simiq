@@ -14,11 +14,11 @@ The simulation SHALL take a sewn garment mesh whose UV coordinates are the flat 
 - **THEN** its rest length along the course is 7.2 mm
 
 #### Scenario: Seams are joined
-- **WHEN** two pattern pieces share a sewn edge whose vertices coincide within 0.5 mm in the draped garment
+- **WHEN** two pattern pieces share a sewn edge whose vertices coincide within 1 mm in the draped garment
 - **THEN** those vertices move as one in the simulation
 
 #### Scenario: A folded binding keeps its shape
-- **WHEN** both edges of a binding folded over another piece's edge lie within 0.5 mm of the same vertex
+- **WHEN** both edges of a binding folded over another piece's edge lie within 1 mm of the same vertex
 - **THEN** only the nearer one is joined to it and no triangle collapses
 
 #### Scenario: Missing pattern coordinates
@@ -41,7 +41,7 @@ The simulation SHALL start from a garment already draped on a body and follow th
 
 #### Scenario: No penetration
 - **WHEN** a garment is simulated through a change of body and pose
-- **THEN** at every recorded frame at least 99 % of garment vertices lie outside the body surface and none lies more than 2 mm inside it
+- **THEN** at every recorded frame at least 99 % of garment vertices lie outside the body surface, and in the case's settled frame no vertex lies deeper inside it than the deepest vertex of CLO's drape of the same case (grill ruling 7)
 
 #### Scenario: Same input, same output
 - **WHEN** the same garment, fabric and body sequence are simulated twice

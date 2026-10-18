@@ -5,7 +5,7 @@ import json
 import numpy as np
 import pytest
 
-from simiq_fit.drape import COLLISION_MM, body, cloth, positions_mm, run
+from simiq_fit.drape import COLLISION_MM, body, cloth, move_body, positions_mm, run
 from simiq_fit.garment import DATA, Fabric
 from simiq_fit.surface_strain import strains
 
@@ -37,13 +37,14 @@ def grid(columns, rows, spacing_mm):
 def test_hanging_strip_settles_on_its_curve():
     # Spec: a 50 mm strip whose load lies on the course curve at 20 %. The example knit pulls
     # 4.5 N on a 50 mm strip at 20 %, so the bottom row carries 4.5 N down, 4.5 / 11 per vertex
-    # (as a force: a 0.46 kg weight on 1 g of fabric would need ~10⁴ Gauss-Seidel iterations).
+    # (as a force: a 0.46 kg weight on 1 g of fabric would need ~10⁴ Gauss-Seidel iterations),
+    # with the strip's inertia scaled so that the force does not fling 5 µg vertices.
     # The strip's own 190 g/m² · 50 · 100 mm² · 9.81 = 0.0093 N adds at most 0.2 % at the top.
     positions, faces, rest = grid(11, 21, 5.0)
     top, bottom = np.arange(11), np.arange(20 * 11, 21 * 11)
     load = np.zeros_like(positions)
     load[bottom, 1] = -4.5 / 11
-    sheet = cloth(rest, faces, positions, KNIT, pinned=top, force_n=load)
+    sheet = cloth(rest, faces, positions, KNIT, pinned=top, force_n=load, inertia_scale=1000)
     run(sheet, seconds=4.0)
     course = strains(rest, faces, positions_mm(sheet))[:, 0]
     assert course.mean() == pytest.approx(0.20, abs=0.01)
@@ -57,7 +58,14 @@ def test_a_stiffer_triangle_carries_the_load_at_less_strain():
     load[np.arange(20 * 11, 21 * 11), 1] = -4.5 / 11
     stiff = np.full(len(faces), 2.0)
     sheet = cloth(
-        rest, faces, positions, KNIT, pinned=np.arange(11), force_n=load, stiffness_scale=stiff
+        rest,
+        faces,
+        positions,
+        KNIT,
+        pinned=np.arange(11),
+        force_n=load,
+        stiffness_scale=stiff,
+        inertia_scale=1000,
     )
     run(sheet, seconds=4.0)
     assert strains(rest, faces, positions_mm(sheet))[:, 0].mean() == pytest.approx(0.11, abs=0.01)
@@ -107,15 +115,69 @@ def test_tube_on_a_cylinder_settles_at_its_strain_outside_the_surface():
     assert np.hypot(x[:, 0], x[:, 1]).min() >= radius
 
 
-def test_an_outer_layer_keeps_its_own_distance_off_the_body():
-    # A pocket lies on the back panel, so it keeps 2.2 mm more off the body; the same 84 cm tube
-    # settles at 14.3 % on a body 2.2 mm thinner than before.
-    garment, faces, rest = tube(48, 5, 133.79, 10.0, 17.5)
-    distance = COLLISION_MM + 2.2
-    cylinder, cylinder_faces, _ = tube(720, 9, 152.8979 - distance, 10.0, 1.0)
-    cylinder[:, 2] -= 20.0
-    sheet = cloth(rest, faces, garment, KNIT, collision_mm=np.full(len(garment), distance))
-    run(sheet, seconds=2.0, body=body(cylinder, cylinder_faces))
-    assert strains(rest, faces, positions_mm(sheet))[:, 0].mean() == pytest.approx(
-        0.142857, abs=0.002
+def test_a_layer_rests_on_the_one_under_it():
+    # A free sheet falls onto a pinned sheet 0.5 mm below it and stops 2.2 mm above it, the layer
+    # distance; the two sheets are one cloth (as a pocket and the back panel are).
+    under, under_faces, under_rest = grid(6, 6, 10.0)
+    upper, upper_faces, upper_rest = grid(4, 4, 10.0)
+    flat = np.c_[under[:, 0], np.zeros(len(under)), under[:, 1]]
+    lifted = np.c_[upper[:, 0] + 10.0, np.full(len(upper), 0.5), upper[:, 1] - 10.0]
+    positions = np.r_[flat, lifted]
+    faces = np.r_[under_faces, upper_faces + len(under)]
+    rest = np.r_[under_rest, upper_rest]
+    upper_ids = np.arange(len(under), len(positions))
+    sheet = cloth(
+        rest,
+        faces,
+        positions,
+        KNIT,
+        pinned=np.arange(len(under)),
+        layer=(upper_ids, under_faces, 2.2),
     )
+    run(sheet, seconds=1.0)
+    assert positions_mm(sheet)[upper_ids, 1] == pytest.approx(2.2, abs=0.05)
+
+
+def test_free_cloth_falls_at_the_rate_of_gravity():
+    # A garment must follow a body that sinks. 50 substeps of dt = 2 ms, v ← (v + g dt) · a with
+    # a = e^(−2 · 0.002) = 0.996008: x = g dt² · [N + a/(1−a) · (N − (1 − a^N)/(1 − a))]
+    # = 9.81 · 4e-6 · [50 + 249.50 · (50 − 45.408)] = 0.046919 m (continuous: 45.94 mm).
+    positions, faces, rest = grid(5, 5, 10.0)
+    sheet = cloth(rest, faces, positions, KNIT)
+    run(sheet, seconds=0.1)
+    assert (positions[:, 1] - positions_mm(sheet)[:, 1]).mean() == pytest.approx(46.92, abs=0.05)
+
+
+def test_cloth_on_a_body_is_carried_when_the_body_moves():
+    # The cylinder slides 50 mm along its axis in 0.5 s; the tube lying on it moves with it (slow
+    # inertia, so neither gravity nor momentum could have moved it there).
+    garment, faces, rest = tube(48, 5, 152.8979, 10.0, 17.5)
+    cylinder, cylinder_faces, _ = tube(720, 9, 152.8979 - COLLISION_MM, 10.0, 1.0)
+    cylinder[:, 2] -= 20.0
+    sheet = cloth(rest, faces, garment, KNIT, inertia_scale=1000)
+    moving = body(cylinder, cylinder_faces)
+    run(sheet, seconds=0.2, body=moving)
+    before = positions_mm(sheet)[:, 2].mean()
+    move_body(moving, cylinder + [0.0, 0.0, 50.0])
+    run(sheet, seconds=0.5, body=moving)
+    assert positions_mm(sheet)[:, 2].mean() - before == pytest.approx(50.0, abs=0.5)
+
+
+def axial_slide(friction):
+    """How far the spec's tube on its cylinder slides along it in 1 s under a 5 N axial load."""
+    garment, faces, rest = tube(48, 5, 152.8979, 10.0, 17.5)
+    cylinder, cylinder_faces, _ = tube(720, 9, 152.8979 - COLLISION_MM, 10.0, 1.0)
+    cylinder[:, 2] -= 20.0
+    load = np.zeros_like(garment)
+    load[:, 2] = 5.0 / len(garment)
+    sheet = cloth(rest, faces, garment, KNIT, force_n=load, inertia_scale=1000, friction=friction)
+    run(sheet, seconds=1.0, body=body(cylinder, cylinder_faces))
+    return positions_mm(sheet)[:, 2].mean() - garment[:, 2].mean()
+
+
+def test_a_gripper_holds_where_fabric_slides():
+    # The tube presses on the cylinder with P = T/r = 402 Pa (above) over 0.96 m × 40 mm, 15.4 N.
+    # A 5 N pull along it beats μ = 0.3 (4.6 N) and not μ = 1.5 (23.2 N); held, the tube still
+    # gives 1.6 mm as it takes up the load (the same at μ = 0.6 and 1.5: no sliding).
+    assert axial_slide(np.full(240, 0.3)) > 10.0
+    assert abs(axial_slide(np.full(240, 1.5))) < 2.0

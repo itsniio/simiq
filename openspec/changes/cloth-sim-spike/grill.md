@@ -10,5 +10,7 @@ Typed answers from the founder on 2026-10-16, given as choices in the session wh
 | 4 | Where does the garment shape come from? | "Oboje postupne" | Start from a sewn 3D garment with UVs in mm as the flat pattern; DXF and sewing follow once the simulation is validated. | two-way |
 | 5 | When has the spike passed? | "Zhoda s CLO" | On 4 bodies × 3 poses: per-zone strain within ±3 percentage points of CLO, the same size ranking, one garment on one body under 60 s on the Mac. | two-way |
 | 6 | How long? | "1 týždeň" | Until Fri 23 Oct 2026, then a go/no-go. | two-way |
+| 7 | (18 Oct) Our drape and CLO's both put armpit vertices more than 2 mm inside the posed Anny. What is the penetration limit? | "limit prieniku nech je „nie horšie ako CLO na tom istom prípade“" | The no-penetration scenario keeps the 99 % outside; its depth limit is CLO's drape of the same case instead of 2 mm. | two-way |
+| 8 | (16 Oct) The sleeve opening is unstretched in CLO, so 176/88 does not strain it more than 180/64. Keep it in task 3.2's claim? | "urob to co myslis ze je lepsie" | Left to the agent: the claim covers the torso girth zones; the sleeve opening is reported only. | two-way |
 
 Not ruled yet: who in track F owns the spike next to the engine PRs; whether pressure is ever checked with a sensor on people (option offered, not chosen for the spike).
