@@ -5,6 +5,8 @@ uv run python scripts/cloth_spike.py mesh          # the starting drape, checked
 uv run python scripts/cloth_spike.py zones         # garment faces of each zone, to zones.npz (3.2)
 uv run python scripts/cloth_spike.py strain        # zone strains of every CLO case (task 3.2)
 uv run python scripts/cloth_spike.py pressure      # relative zone pressure by size (task 3.3)
+uv run python scripts/cloth_spike.py drape         # our drape 178/75 → 176/88 hoods, twice (4.3)
+uv run python scripts/cloth_spike.py timing        # one garment on one body on this machine (4.4)
 """
 
 import json
@@ -14,6 +16,7 @@ import sys
 import numpy as np
 from clo_cache_extract import FRAMES, SPIKE_DIR
 
+from simiq_fit import drape as solver
 from simiq_fit.fit import relative_pressures
 from simiq_fit.garment import Curve, Fabric
 from simiq_fit.garment_mesh import load_garment, read_obj
@@ -44,8 +47,15 @@ STAND_IN_TENSION = Curve.model_construct(
     strain=[0, 0.111, 0.249, 0.429], force_n=[0, 13.3429, 46.96666, 76.31002]
 )
 STAND_IN_FABRIC = Fabric.model_construct(
-    specimen_width_mm=1000, curves={"course": STAND_IN_TENSION, "wale": STAND_IN_TENSION}
+    specimen_width_mm=1000,
+    weight_g_m2=150,
+    curves={"course": STAND_IN_TENSION, "wale": STAND_IN_TENSION},
 )
+ZIPPER = ("Fabric628555",)  # the zipper tapes: they close the front; UV is a texture, not a pattern
+ZIPPER_STIFFNESS = 100.0  # a woven tape barely stretches: 100 × the knit, a spike guess
+POCKET_PIECES = (1, 12)  # the back pockets lie on the back panel, 2.2 mm further off the body
+POCKET_LAYER_MM = 2.2  # CLO's start drape: pocket p5 6.7–6.8 mm off the body, back panel 4.6 mm
+OURS = SPIKE_DIR / "ours"  # our drapes, outside git like CLO's
 BODIES = ("178-75", "180-64", "176-88", "192-82")
 POSES = ("standing", "hoods", "drops")
 SIZE_FACTOR = {
@@ -317,6 +327,116 @@ def case_garments(pose, size):
     return garment, welded
 
 
+def read_pc2(path):
+    """All frames of a Point Cache 2 file, (frames, points, 3) in its units."""
+    with open(path, "rb") as f:
+        _magic, _version, points, _start, _rate, frames = struct.unpack("<12siiffi", f.read(32))
+        return np.frombuffer(f.read(), "<f4").reshape(frames, points, 3)
+
+
+@solver.wp.kernel
+def signed_distance(
+    mesh: solver.wp.uint64,
+    x: solver.wp.array(dtype=solver.wp.vec3),
+    out: solver.wp.array(dtype=float),
+):
+    i = solver.wp.tid()
+    q = solver.wp.mesh_query_point_sign_winding_number(mesh, x[i], 1.0)
+    out[i] = 1.0e9
+    if q.result:
+        p = solver.wp.mesh_eval_position(mesh, q.face, q.u, q.v)
+        out[i] = solver.wp.length(x[i] - p) * q.sign
+
+
+def distances_mm(body, positions):
+    """Signed distance of each point from the body surface, mm (negative inside)."""
+    out = solver.wp.zeros(len(positions), dtype=float)
+    points = solver.wp.array(np.asarray(positions, float) / 1000, dtype=solver.wp.vec3)
+    solver.wp.launch(signed_distance, len(positions), [body.mesh.id, points, out])
+    return out.numpy() * 1000
+
+
+def simulated_garment(size="M"):
+    """The starting drape with its zipper, ready for our solver."""
+    start = np.load(CASES / "standing-M.npz")["start-178-75"]
+    garment = load_garment(MESH, uv_mm(), shrinkage(size), FABRIC, start, trims=ZIPPER)
+    pocket = np.unique(garment.faces[np.isin(garment.piece, POCKET_PIECES)])
+    collision = np.full(len(garment.positions), solver.COLLISION_MM)
+    collision[pocket] += POCKET_LAYER_MM
+    zipper = np.where(garment.piece >= len(shrinkage(size)), ZIPPER_STIFFNESS, 1.0)
+    cloth = solver.cloth(
+        garment.rest_mm,
+        garment.faces,
+        garment.positions,
+        STAND_IN_FABRIC,
+        stiffness_scale=zipper,
+        collision_mm=collision,
+    )
+    return garment, cloth
+
+
+def drape_sequence(target="176-88", size="M", record_every=15):
+    """Our drape through the point cache that morphs 178/75 into the target and poses it (hoods).
+
+    Returns the garment, its positions at the recorded frames and their distances off the body.
+    """
+    garment, cloth = simulated_garment(size)
+    h, w = target.split("-")
+    frames = read_pc2(START_BODY.parent / f"anny-m{h}-{w}-morph-hoods.pc2").astype(float) * 10
+    body = solver.body(frames[0], body_faces())
+    records = []
+    for f in range(1, len(frames)):
+        solver.move_body(body, frames[f])
+        solver.run(cloth, 1 / 30, body=body)
+        if f % record_every == 0 or f == len(frames) - 1:
+            positions = solver.positions_mm(cloth)
+            records.append((f, positions, distances_mm(body, positions)))
+    return garment, records
+
+
+def drape():
+    """Task 4.3: no penetration at any recorded frame, and the same drape twice."""
+    import time
+
+    runs = []
+    for attempt in range(2):
+        t0 = time.time()
+        garment, records = drape_sequence()
+        runs.append(records)
+        print(f"run {attempt + 1}: {len(records)} recorded frames in {time.time() - t0:.0f} s")
+    for f, _positions, distance in runs[0]:
+        outside = (distance >= 0).mean()
+        print(f"frame {f:3}: outside {outside:.2%}, deepest {distance.min():6.2f} mm, "
+              f"p1 {np.percentile(distance, 1):5.2f} mm")  # fmt: skip
+    worst = max(np.abs(a[1] - b[1]).max() for a, b in zip(*runs, strict=True))
+    print(f"two runs differ by at most {worst:.4f} mm")
+    OURS.mkdir(exist_ok=True)
+    np.savez(OURS / "hoods-M-176-88.npz", positions=runs[0][-1][1], faces=garment.faces)
+
+
+def timing():
+    """Task 4.4: wall time of setting up and simulating one garment through one body sequence."""
+    import platform
+    import time
+
+    t0 = time.perf_counter()
+    _, cloth = simulated_garment()
+    frames = read_pc2(START_BODY.parent / "anny-m176-88-morph-hoods.pc2").astype(float) * 10
+    body = solver.body(frames[0], body_faces())
+    t1 = time.perf_counter()
+    for f in range(1, len(frames)):
+        solver.move_body(body, frames[f])
+        solver.run(cloth, 1 / 30, body=body)
+    solver.wp.synchronize()
+    t2 = time.perf_counter()
+    seconds = (len(frames) - 1) / 30
+    print(f"{platform.processor() or platform.machine()}, Warp {solver.wp.__version__} on CPU")
+    print(f"{cloth.faces.shape[0]} triangles, {cloth.x.shape[0]} vertices, {seconds:.2f} s "
+          f"simulated, {solver.SUBSTEPS_PER_S}/s × {solver.ITERATIONS} passes")  # fmt: skip
+    print(f"setup {t1 - t0:.1f} s, simulation {t2 - t1:.1f} s ({(t2 - t1) / seconds:.1f} s per "
+          f"simulated second), total {t2 - t0:.1f} s")  # fmt: skip
+
+
 def zone_strain_table():
     """Zone mean course strain (wale for back length) of every CLO case, by (pose, size, body)."""
     sets = dict(np.load(ZONES))
@@ -419,5 +539,7 @@ if __name__ == "__main__":
         "zones": zones,
         "strain": strain,
         "pressure": pressure,
+        "drape": drape,
+        "timing": timing,
     }
     commands[sys.argv[1]]()

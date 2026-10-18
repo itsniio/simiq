@@ -107,3 +107,17 @@ def test_zero_uv_area_names_the_piece(tmp_path):
 def test_one_shrinkage_per_piece(tmp_path):
     with pytest.raises(ValueError, match="2 pattern pieces, 1 shrinkage"):
         load_garment(write(tmp_path, obj_text(two_pieces(0.4))), UV_MM, [(1, 1)])
+
+
+def test_a_trim_takes_its_rest_shape_from_the_drape(tmp_path):
+    # A zipper tape whose UV is a texture, not a pattern: its rest triangle is its draped one,
+    # edges 3 and 4 mm (a 3-4-5 triangle) whatever its UV, and it is sewn to the fabric piece.
+    fabric = ([(0, 0, 0), (10, 0, 0), (10, 10, 0)], [(0, 0), (0.1, 0), (0.1, 0.05)], [(0, 1, 2)])
+    tape = ([(10, 0, 0), (13, 0, 0), (10, 0, 4)], [(0, 0), (9, 0), (0, 99)], [(0, 1, 2)])
+    text = obj_text([fabric, tape]).replace("usemtl FABRIC_main\nf 4/", "usemtl Zipper_tape\nf 4/")
+    mesh = load_garment(write(tmp_path, text), UV_MM, [(1, 1)], trims=("Zipper",))
+    assert mesh.piece.tolist() == [0, 1]
+    rest = mesh.rest_mm[1]
+    edges = sorted(np.linalg.norm(rest[[1, 2, 0]] - rest, axis=1).round(6))
+    assert edges == [3.0, 4.0, 5.0]
+    assert len(mesh.positions) == 5  # the tape's corner at (10, 0, 0) is sewn to the fabric's

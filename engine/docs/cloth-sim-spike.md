@@ -74,3 +74,30 @@ The example knit (illustrative values, curve to 50 %) gave the same ranking in `
 Taking κ from the garment's own surface instead of the body (tried first) let CLO's folds flip the sign of the curvature: hoods L chest came out at −17 Pa and sizes did not rank in the poses. With the body's κ the ranking holds wherever the strain ranking does.
 
 Run times on the Mac: `zones` 16 s, `strain` 6 s for 36 cases, `pressure` 2 min (nearest body triangle by brute force, 38,775 × 27,420 per case).
+
+## Drape solver (tasks 4.1–4.4), 18 Oct 2026
+
+`simiq_fit/drape.py`: XPBD on Warp (CPU), per substep a prediction, two passes of per-triangle course, wale and shear stretch from the fabric curve, one bending pass, one body-collision pass, then velocities with Coulomb friction. Derivations in `formulas.md`; spec tests in `tests/test_drape.py`. `scripts/cloth_spike.py drape | timing` run it on the jersey.
+
+**4.1 Hanging strip.** The example knit's 50 mm strip with the curve's 20 % load settles at 20.2 % (500 substeps/s × 2 passes; 19.8 % at 1000 × 2), within the 1 point. It took two fixes to get there, both general:
+
+- A heavy weight on a light strip (w ratio 10⁴) or a force on a 5 µg vertex does not converge in Gauss-Seidel passes (388 % instead of 20 %). Inertia is scaled by `MASS_SCALE` = 1000 while weight stays the fabric's own force: the settled state is unchanged, only the way to it.
+- A piecewise curve is solved piece by piece, constraint C = ε − ε₀ with the piece's own slope, so the force is exactly A·T(ε) on every piece.
+
+**4.2 Tube on a cylinder.** The spec's 84 cm tube on a 96 cm cylinder settles at 14.285 % (14.3 %), no vertex inside; also with a 2.2 mm thicker layer. Bending is a flat-rest hinge per interior edge (discrete-shell energy, weights from the rest triangles); its stiffness, 10⁻⁶ N·m, is a guess and matters little on the tight jersey (switched off, the chest's course strain after 0.2 s moved by 0.3 points).
+
+**The real jersey needed three things the tube did not:**
+
+- *The zipper.* `load_garment` kept only the FABRIC_13 pieces, so the jersey was open at the front: within 0.2 s the front panels lost 13.7 points of course strain and the chest went from 7.9 % to 0.6 %. The zipper tapes (`Fabric628555`, UV is a texture, not a pattern) are now `trims`: each triangle rests in its drape shape, they weld to the fronts and to each other, and they are 100 × the knit's stiffness (a guess for a woven tape). With them the chest holds at 6.5–7 % on the start body.
+- *The collision distance.* CLO keeps the garment 4.6 mm off the avatar (start drape: p1 4.58, median 4.73 mm). With the design's 2 mm the garment first moved 2.6 mm inward with no contact and no friction; `COLLISION_MM` is now CLO's 4.6 mm.
+- *The pocket layer.* Cloth does not collide with cloth here, so the back pockets (pieces 1, 12) fell through the back panel to the body (median 25 mm). They now keep 2.2 mm more off the body, as in CLO (pocket p5 6.7–6.8 mm, back panel 4.6 mm). The silicone hem gripper and the zipper teeth are still left out.
+
+The sleeves still ride 7–13 mm up the arm on the start body and the pocket edge moves; whether that matters is for group 5's zone comparison.
+
+**4.3 Body sequence.** 178/75 → 176/88 `hoods` through CLO's own point cache (`anny-m176-88-morph-hoods.pc2`: morph 40 frames, settle 15, pose 120, hold 30), size M:
+
+- *Determinism:* two runs agree to 0.0000 mm (colour-ordered Gauss-Seidel, no atomics).
+- *Penetration* (winding-number inside test): 99.96–100 % of vertices outside at all 14 recorded frames, so the 99 % part holds. The "none more than 2 mm inside" part does not: one to five vertices of the underarm inserts and side panels go 2–4.25 mm inside at frames 45, 60, 90 and 135, all in the armpit crease where the posed Anny's arm and torso meet. CLO's own M drapes fail the same check worse: hoods 176/88 99.04 % outside, 144 vertices below −2 mm, deepest −6.19 mm; every hoods and drops case has vertices below −2 mm, drops down to −14.15 mm. Task 4.3 stays open for the founders to restate the limit (outside the body's own creases, or no worse than CLO).
+- The angle-weighted normal's sign called one armpit vertex inside when it was 4.6 mm outside; inside is now confirmed by winding number before a vertex is pushed.
+
+**4.4 Timing** (`timing`, Apple M3 Pro, Warp 1.18 on one CPU core): 39,045 triangles, 19,740 vertices, 6.80 s of sequence at 500 substeps/s × 2 passes: setup 1.7 s, simulation 55.7 s (8.2 s per simulated second), **57.4 s total**, under the 60 s budget with CLO's 10 mm mesh as it is, so the particle distance stays 10 mm. Where it went, per substep: triangles 3.2 ms per pass, bending 1.0 ms, collision 2.4 ms (15 ms with a BVH query per vertex; now the last nearest face is tried first and one vertex in four asks the BVH), body refit 2.8 ms while it moves. Asking the BVH for one vertex in 16 instead of 4 takes 52 s but lets the armpit vertices go 5.7 mm deep.

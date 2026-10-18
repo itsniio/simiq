@@ -72,6 +72,16 @@ def weld(positions: np.ndarray, piece_of_vertex: np.ndarray, weld_mm: float) -> 
     return np.array([root(i) for i in range(len(positions))])
 
 
+def laid_flat(triangles: np.ndarray) -> np.ndarray:
+    """Each 3D triangle in its own plane: corner 0 at the origin, corner 1 on the first axis."""
+    e1, e2 = triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0]
+    length = np.linalg.norm(e1, axis=1)
+    along = np.einsum("ij,ij->i", e2, e1) / length
+    across = np.linalg.norm(np.cross(e1, e2), axis=1) / length
+    zero = np.zeros_like(length)
+    return np.stack([np.c_[zero, zero], np.c_[length, zero], np.c_[along, across]], axis=1)
+
+
 def load_garment(
     path,
     uv_mm: tuple[float, float],
@@ -79,17 +89,21 @@ def load_garment(
     fabric: str = "FABRIC",
     positions: np.ndarray | None = None,
     weld_mm: float = WELD_MM,
+    trims: tuple[str, ...] = (),
 ) -> GarmentMesh:
     """The fabric pieces of an OBJ, welded at seams, rest shapes from UV × uv_mm × shrinkage.
 
     uv_mm: mm per UV unit along u (course) and v (wale) for this export. shrinkage: per pattern
     piece, in material-block order, the simulation shrinkage as fractions (course, wale).
     positions: vertex positions to use instead of the OBJ's, e.g. a drape from a cache.
+    trims: materials whose UV is not a pattern (a zipper tape); their pieces follow the fabric
+    pieces and each triangle rests in the shape it has in `positions`.
     """
     vertices, uvs, blocks = read_obj(path)
     if positions is not None:
         vertices = np.asarray(positions, float)
     pieces = [faces for material, faces in blocks if fabric in material]
+    trim_pieces = [faces for material, faces in blocks if any(t in material for t in trims)]
     if len(pieces) != len(shrinkage):
         raise ValueError(f"{len(pieces)} pattern pieces, {len(shrinkage)} shrinkage values")
     faces, rest, piece_of_face = [], [], []
@@ -103,6 +117,11 @@ def load_garment(
             raise ValueError(f"pattern piece {k} has a triangle with zero UV area")
         faces.append(corners[:, :, 0])
         rest.append(uv * np.array(uv_mm) * np.array([course, wale]))
+        piece_of_face += [k] * len(corners)
+    for k, corners in enumerate(trim_pieces, start=len(pieces)):
+        corners = np.array(corners)[:, :, 0]
+        faces.append(corners)
+        rest.append(laid_flat(vertices[corners]))
         piece_of_face += [k] * len(corners)
     piece_of_vertex = np.full(len(vertices), -1)
     for k, piece_faces in enumerate(faces):

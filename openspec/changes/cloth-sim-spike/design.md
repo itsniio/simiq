@@ -60,4 +60,4 @@ report(ours vs clo for 36 cases, timing)
 
 ## Open Questions
 
-- Particle distance for the spike mesh (10 or 15 mm), decided by the first timing run.
+- ~~Particle distance for the spike mesh (10 or 15 mm), decided by the first timing run.~~ 10 mm, CLO's export as it is: one garment (39,045 triangles) through one 6.8 s body sequence takes 57 s on the M3 Pro's CPU (task 4.4, 18 Oct).

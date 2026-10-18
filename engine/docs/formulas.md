@@ -275,3 +275,41 @@ The normal curvature along a unit direction d in the plane is κ(d) = dᵀ S d; 
 Tests: a tube of 48 chords of 20 mm has r = 20 / (2 sin(π/48)) = 10 / 0.0654031 = 152.8979 mm, and κ = 1/152.8979 round it, 0 along it. The spec's tube of 84 cm on a cylinder of 96 cm: 48 chords of 17.5 mm stretched to 20 mm, strain 20/17.5 − 1 = 0.142857; course tension on the example knit 2.0 + 0.42857 · 2.5 = 3.07143 N over 50 mm = 61.4286 N/m; p = 61.4286 / 0.1528979 = 401.76 Pa (402.04 Pa on the round cylinder of r = 0.96 / 2π, the 0.07 % being the polygon). The same tube on a body meshed with 96 chords of 10 mm: r = 5 / sin(π/96) = 5 / 0.0327191 = 152.8160 mm, p = 401.98 Pa. A tube stretched 20/12 − 1 = 66.7 %, beyond the curve's 50 %, has no pressure anywhere.
 
 As in the fit engine, p is only ever reported relative to the highest among the sizes of the same garment on the same body and pose (`relative_pressures`).
+
+## Drape solver (cloth-sim-spike 4.1–4.3, `drape.py`)
+
+### XPBD step
+
+Extended position-based dynamics (Macklin, Müller, Chentanez 2016). Per substep of length Δt each free vertex is predicted from its velocity and force, x̃ = x + Δt v + Δt² w f (w = 1/m), and then moved to satisfy constraints Cⱼ(x) = 0, each with an energy ½ kⱼ Cⱼ². For one constraint with gradients ∇ᵢC on its vertices and compliance α̃ = 1 / (k Δt²), one update is
+
+    Δλ = (−C − α̃ λ) / (Σᵢ wᵢ |∇ᵢC|² + α̃),   xᵢ ← xᵢ + wᵢ ∇ᵢC Δλ,   λ ← λ + Δλ
+
+with λ starting at 0 each substep and carried over its `ITERATIONS` passes. When the passes converge, C = −α̃ λ, so the constraint pushes with force λ ∇C / Δt² = −k C ∇C, the gradient of its energy: the settled state is the energy minimum whatever Δt is. Velocities are (x − x_before) / Δt, damped by e^(−`DAMPING_PER_S` Δt). Constraints are solved colour by colour (no two in one colour share a vertex), so a run is deterministic.
+
+### Stretch from the fabric curve
+
+A triangle's course strain is |F·u| − 1 (formula above). The fabric curve gives tension T(ε) in N/m, piecewise linear: on the piece holding ε, T = s (ε − ε₀) with slope s and zero-tension strain ε₀ = εᵢ − Tᵢ / s. The triangle's energy for that piece is A_rest ∫ T dε = ½ A_rest s (ε − ε₀)², so the constraint is
+
+    C = |F·u| − 1 − ε₀,   k = A_rest · s,   ∇C on corners 1, 2 = aₖ · (F·u)/|F·u|, corner 0 the negative sum
+
+where (a₁, a₂) is the first column of Dm⁻¹ (F·u = a₁(x₁ − x₀) + a₂(x₂ − x₀)). The force on the cloth is then A_rest · T(ε) exactly, on every piece. Check: a row of a strip of width w and row height h has area w·h and strain ΔL / h, so dE/dΔL = w·T, the strip test's force. Below 0 strain the knit buckles instead of pushing back: compression gets `COMPRESSION_SCALE` × the first slope. The wale likewise; shear C = (F·u)·(F·v), zero while course and wale lines stay square, with k = A_rest · `SHEAR_N_PER_M` (not measured, a guess). A per-triangle multiplier scales k (a zipper tape is `ZIPPER_STIFFNESS` × the knit).
+
+Tests (`test_drape.py`): the example knit's 50 mm strip with 4.5 N on its free edge (90 N/m, the curve at 20 %) settles at 20 % ± 1 point (measured 19.84 % after 4 s). Twice as stiff, 90 N/m is the curve's 45 N/m, between 40 N/m at 10 % and 90 N/m at 20 %: 10 % + 5/50 · 10 % = 11 %.
+
+**Mass scaling.** XPBD's Gauss-Seidel passes move a heavy vertex by w_heavy / Σw of the error, so a 0.46 kg weight on a 1 g strip (w ratio 10⁴) needs ~10⁴ passes, and a 4.5 N force on a 5 µg vertex predicts metres of motion per substep. The inertia is therefore `MASS_SCALE` × the fabric's mass while the weight stays the fabric's own (it is a force, not an acceleration). The settled state does not depend on inertia (equilibrium: Σ forces = 0); only how it gets there does. Without it the strip settled at 388 % instead of 20 %.
+
+### Bending
+
+Each interior edge with its two opposite vertices is a hinge, flat at rest (the pattern is flat). With the edge from vertex 0 to 1, opposite vertex 2 at fraction s₂ along it and height h₂ off it (in its own rest triangle), vertex 3 at s₃, h₃ on the other side:
+
+    K₂ = 1/h₂,  K₃ = 1/h₃,  K₁ = −(K₂ s₂ + K₃ s₃),  K₀ = −(K₂ + K₃) − K₁
+
+These are the weights with Σ Kᵢ = 0 and Σ Kᵢ pᵢ = 0 for the flat rest positions pᵢ (the moment along the edge and across it), so L = Σ Kᵢ xᵢ vanishes for any rigid or flat placement, and for a small fold, with the opposite vertices lifted d₂, d₃ off the plane, |L| = d₂/h₂ + d₃/h₃ = θ, the fold angle. Constraint C = |L|, gradient Kᵢ L/|L|, stiffness k = `BENDING_N_M` · 6 |e|² / (A₀ + A₁): the discrete-shell energy 3 k_b |e|² θ² / (A₀ + A₁) of Grinspun et al. 2003 written as ½ k θ².
+
+### Body collision and friction
+
+The body is a closed triangle mesh, normals outward. Once per substep, after the stretch passes and one bending pass, every vertex closer to the body surface than its collision distance d (or inside it) is moved to the closest surface point p plus d along the outward direction. Inside is decided by the sign of the angle-weighted normal and, when that says inside, by the winding number: in the armpit crease the normal's sign called a vertex 4.6 mm outside the body inside it. The closest point is first sought on the body face found nearest last time (the vertex's projection onto that face's plane, if it falls inside the face, is the closest point on it, and the face normal gives the side); otherwise, and for one vertex in 16 each substep, the body's BVH is queried. That cut a collision pass from 15 to 2.4 ms on the jersey. d = `COLLISION_MM` = 4.6 mm, the distance CLO keeps the garment off the avatar (start drape: p1 4.58, median 4.73 mm); a pocket lying on the back panel keeps 2.2 mm more (CLO: pocket p5 6.7–6.8 mm), since cloth does not collide with cloth here.
+
+Friction acts on the velocity of a vertex the body pushed during the substep, relative to the body point it touches (from the body's positions at the start and end of the substep): the tangential part v_t loses up to μ · |push| / Δt (Coulomb: the tangential impulse is at most μ times the normal one), v_t ← v_t · max(0, 1 − μ |push| / (Δt |v_t|)), μ = `FRICTION` = 0.3.
+
+Tests: the spec's 84 cm tube on a 96 cm cylinder (the cylinder `COLLISION_MM` thinner, so the garment's midsurface lies on 96 cm) settles at 14.29 % course strain with no vertex inside the cylinder; the same with a 2.2 mm thicker layer on a 2.2 mm thinner cylinder.
