@@ -105,7 +105,7 @@ The sleeves still ride 7–13 mm up the arm on the start body and the pocket edg
 
 ## Comparison with CLO and recommendation (tasks 5.1, 5.2), 18–19 Oct 2026
 
-**Recommendation: no-go as specified, close in standing.** Against the acceptance scenarios: sizes rank like CLO's in chest strain on all 12 body × pose pairs (pass); no case goes deeper into the body than CLO's drape of it (36 of 36, ruling 7, pass); one garment on one body takes 58.5–64.5 s on a loaded machine, 56.6 s on a quiet one (borderline); but only **10 of 35** held-out cases have every zone within ±3 points of CLO (fail), so the report recommends no-go (spec: "any of those conditions fails"). In `standing`, 11 of the 11 held-out cases are within 3.3 points and 10 within 3; the failures are in the poses: the hem zone in `hoods` and four `drops` cases (below). Friction 1.0, which brought the hem down to CLO's height, was chosen after looking at a held-out pose; the founders should weigh that (below).
+**Recommendation: no-go as specified, close in standing.** Against the acceptance scenarios: sizes rank like CLO's in chest strain on all 12 body × pose pairs (pass); no case goes deeper into the body than CLO's drape of it (36 of 36, ruling 7, pass); one garment on one body takes 58.5–64.5 s on a loaded machine, 56.6 s on a quiet one (borderline); but only **10 of 35** held-out cases have every zone within ±3 points of CLO (fail), so the report recommends no-go (spec: "any of those conditions fails"). In `standing`, 11 of the 11 held-out cases are within 3.3 points and 10 within 3; the failures are in the poses: the hem zone in `hoods` and four `drops` cases (below). Friction 1.0, which brought the hem down to CLO's height, was chosen after looking at a held-out pose; the founders should weigh that (below). The posed cases swing by 10–20 points on friction and shear, which the standing fit case cannot identify; measuring those two is what stands between this solver and a go ("Trying to fix the rest", below).
 
 **How it was run.** `simulate <pose> <size>` drives our drape through the very point cache that drove CLO's run of that pose (and, for `hoods` and `drops`, first through the 178/75 A-pose → hoods animation that brought CLO's garment there: those caches start in the pose, 672 mm from the starting drape's body) and saves our garment at CLO's case frames; nine runs side by side, 2.4–4.5 min each. `report` scores both with the same zone metric (group 3) and checks penetration with the winding-number test. Fabric: the stand-in tricot × the fitted scales.
 
@@ -163,6 +163,25 @@ Renders (course strain, CLO above, ours below; blue −30 %, white 0, red +30 %)
 - **`drops` 180/64 S and M:** the hem falls 49 mm below CLO's on average (p10 −122 mm) and the hem zone reads +25 to +28 points; the other `drops` cases miss by 3–7 points, mostly back length (ours −4 to −9 % wale).
 - **Sleeves and shoulders** are more compressed than CLO's everywhere (sleeve opening 1–2 points lower in `standing`); our shear and bending are guesses.
 
+### Trying to fix the rest (19 Oct): the poses hang on parameters the fit cannot see
+
+The remaining posed errors were chased with four experiments, each a full or partial rerun against CLO (worst zone, points; M unless noted):
+
+| Change | hoods M 178/75 · 180/64 · 176/88 · 192/82 | drops M 178/75 · 180/64 · 176/88 · 192/82 | All 36 |
+|---|---|---|---|
+| Official: μ 1.0, shear 20 N/m | 3.8 · 3.4 · 9.4 · 5.8 | 3.5 · 24.5 · 22.3 · 3.1 | 10 of 35 |
+| μ 0.7 | 15.1 · 2.5 · 10.7 · 13.1 | 4.5 · 2.8 · 22.9 · 3.1 | 13 of 35 |
+| μ 0.5 | 16.7 · 18.7 · 14.6 · 17.6 | 4.7 · 3.6 · 24.1 · 3.9 | — |
+| Shear 80 N/m (μ 1.0) | 2.3 · 1.0 · 9.5 · 2.0 | 7.6 · 23.3 · 22.1 · 12.8 | 13 of 35 |
+| The legs do not carry cloth | — | hem 70–115 mm below CLO's on every body | — |
+
+- **Friction is a threshold.** CLO's jersey stays at the hips in `hoods` and rides some 170 mm up the back in `drops` (measured as the A-pose height of the skin under the hem). At μ 1.0 ours does the first and not the second, at 0.5–0.7 the other way round, and at 0.7 the `hoods` hem rides up on two bodies and not on the other two. The +25 points of drops 180/64 are the hem staying on the buttocks where CLO's has gone up.
+- **Shear matters as much and cannot be fitted on the standing case:** across 5–160 N/m the fitted case moves by 0.07 points rms (1.28–1.35), while `hoods` M improves at 80 and `drops` gets worse.
+- **Not carrying cloth on the legs** made `drops` worse: the thighs were holding the hem up, not dragging it down. Dropped.
+- None of these was adopted: each would be chosen by looking at held-out cases. Had friction been calibrated on one posed case of the fitted body and size (178/75 M), both `hoods` (3.8 against 15.1 and 16.7) and `drops` (3.5 against 4.5 and 4.7) would have picked 1.0 of the three values, so the official run keeps 1.0 and shear 20 N/m.
+
+**What this means for the decision.** In `standing` our drape agrees with CLO's within 3.3 points everywhere after fitting two numbers on one case. In the poses the result swings by 10–20 points on fabric-skin friction and in-plane shear, which the standing case cannot pin down and which are guesses here. Passing honestly needs those two measured (a sled test of the fabric on skin, a bias or KES shear test of the fabric), or the protocol changed so that one posed case is fitted too; tuning them on these 35 cases would only show that the solver can be made to match.
+
 ### Solver changes made in group 5 (all in `drape.py` / `garment_mesh.py`, with tests)
 
 1. **Lead-in to the pose.** CLO's `hoods` and `drops` runs start from a garment already posed; the first comparison started ours from the A-pose drape inside a posed body, and the garment fell through it (waist strain 300 %, vertices 96 mm inside).
@@ -174,4 +193,4 @@ Renders (course strain, CLO above, ours below; blue −30 %, white 0, red +30 %)
 
 Full gravity with natural mass was not run: the creep is a balance of forces that friction loses, and the settled balance does not depend on inertia, which the friction sweep above confirms.
 
-Results along the way: first comparison (no lead-in) 4 of 35, ranking 4 of 12; with lead-in, pocket layer and 1 mm weld 5 of 35, ranking 12 of 12; with the body carrying the cloth 4 of 35; with gripper friction 4 of 35; with friction on the position at 1.0 **10 of 35**, ranking 12 of 12.
+Results along the way (all held-out counts): first comparison (no lead-in) 4 of 35, ranking 4 of 12; with lead-in, pocket layer and 1 mm weld 5 of 35, ranking 12 of 12; with the body carrying the cloth 4 of 35; with gripper friction 4 of 35; with friction on the position at 1.0 **10 of 35**, ranking 12 of 12.
