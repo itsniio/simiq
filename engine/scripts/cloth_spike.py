@@ -485,10 +485,10 @@ def zone_strains(garment, positions, sets):
     return course | zone_means(eps[:, 1], area, {"back_length": sets["back_length"]})
 
 
-# Task 5.1, `fit` on 18 Oct (pocket layer, 1 mm weld): least squares over the five zones of
-# 178/75 standing M on FIT_GRID, 1.00 points rms (×1/×2: 1.02). Chest +0.13, waist +1.28,
-# hem +0.85, sleeve opening −1.55, back length +0.41 points against CLO.
-FITTED_SCALES = (1.0, 4.0)  # (course, wale) × the stand-in fabric's tension
+# Task 5.1, `fit` on 19 Oct (friction 1.0, position-level): least squares over the five zones of
+# 178/75 standing M on FIT_GRID, 1.35 points rms (×1/×4: 1.37). Chest −1.34, waist +1.52,
+# hem −1.81, sleeve opening −1.22, back length +0.41 points against CLO.
+FITTED_SCALES = (2.0, 4.0)  # (course, wale) × the stand-in fabric's tension
 FIT_GRID = (0.25, 0.5, 1.0, 2.0, 4.0)  # scales tried per direction, a factor 2 apart
 FIT_SETTLE_S = 3.0  # the fitted case settles this long on the static start body
 

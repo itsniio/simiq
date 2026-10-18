@@ -5,7 +5,7 @@ import json
 import numpy as np
 import pytest
 
-from simiq_fit.drape import COLLISION_MM, body, cloth, move_body, positions_mm, run
+from simiq_fit.drape import COLLISION_MM, FRICTION, body, cloth, move_body, positions_mm, run
 from simiq_fit.garment import DATA, Fabric
 from simiq_fit.surface_strain import strains
 
@@ -177,7 +177,34 @@ def axial_slide(friction):
 
 def test_a_gripper_holds_where_fabric_slides():
     # The tube presses on the cylinder with P = T/r = 402 Pa (above) over 0.96 m × 40 mm, 15.4 N.
-    # A 5 N pull along it beats μ = 0.3 (4.6 N) and not μ = 1.5 (23.2 N); held, the tube still
-    # gives 1.6 mm as it takes up the load (the same at μ = 0.6 and 1.5: no sliding).
+    # A 5 N pull along it beats μ = 0.3 (4.6 N) and not μ = 1.5 (23.2 N).
     assert axial_slide(np.full(240, 0.3)) > 10.0
     assert abs(axial_slide(np.full(240, 1.5))) < 2.0
+
+
+def box(low, high):
+    """A closed box (normals outward) as a body."""
+    corners = np.array(
+        [[x, y, z] for x in (low[0], high[0]) for y in (low[1], high[1]) for z in (low[2], high[2])]
+    )
+    quads = [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
+    return corners, np.array([t for a, b, c, d in quads for t in ((a, b, c), (a, c, d))])
+
+
+def sideways_slide(pull_times_friction):
+    """How far a 40 × 40 mm sheet lying on a box slides in 1 s under a sideways pull."""
+    positions, faces, rest = grid(5, 5, 10.0)
+    sheet_xz = np.c_[positions[:, 0], np.full(len(positions), COLLISION_MM), positions[:, 1]]
+    weight = KNIT.weight_g_m2 / 1000 * 0.04 * 0.04 * 9.81  # N
+    pull = np.zeros_like(sheet_xz)
+    pull[:, 0] = pull_times_friction * FRICTION * weight / len(pull)
+    sheet = cloth(rest, faces, sheet_xz, KNIT, force_n=pull)
+    run(sheet, seconds=1.0, body=body(*box((-50, -20, -90), (90, 0, 50))))
+    return positions_mm(sheet)[:, 0].mean() - sheet_xz[:, 0].mean()
+
+
+def test_cloth_resting_on_a_body_holds_until_the_pull_beats_friction():
+    # Weight 190 g/m² · (0.04 m)² · 9.81 = 2.98 mN against friction μW: half of μW holds, twice
+    # it slides (a = μW / m = μ · 9.81 m/s², over 1 s far more than 5 mm).
+    assert abs(sideways_slide(0.5)) < 0.5
+    assert sideways_slide(2.0) > 5.0

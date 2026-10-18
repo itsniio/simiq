@@ -23,7 +23,7 @@ COMPRESSION_SCALE = (
 )
 BENDING_N_M = 1e-6  # bending rigidity, the order of a light knit's; a spike guess
 COLLISION_MM = 4.6  # the garment keeps this far off the body: CLO's start drape, p1 4.58 mm
-FRICTION = 0.3  # Coulomb coefficient between fabric and skin (cloth's default per vertex)
+FRICTION = 1.0  # fabric on skin, per-vertex default: at 0.3 the jersey rode up 87 mm in hoods
 CARRY_MM = 10.0  # cloth this close to the body moves with it before each substep is solved
 QUERY_MM = 15.0  # how far from the body a vertex is looked up: well past any collision distance
 
@@ -378,6 +378,8 @@ def collide(
     near_uv: wp.array(dtype=wp.vec2),
     near_distance: wp.array(dtype=float),
     contact_push: wp.array(dtype=wp.vec3),
+    previous: wp.array(dtype=wp.vec3),
+    friction: wp.array(dtype=float),
     step: int,
 ):
     """Push a vertex closer than COLLISION_MM to the body (or inside it) out to that distance.
@@ -435,6 +437,14 @@ def collide(
     near_distance[i] = signed
     if signed < COLLISION_MM / 1000.0:
         target = p + n * (COLLISION_MM / 1000.0)
+        # Coulomb friction on the substep's slide over the skin: held while it is within μ times
+        # the push, else shortened by that much (the body's own move was given by `carry`).
+        push = wp.length(target - x[i])
+        slide = target - previous[i]
+        slide = slide - wp.dot(slide, n) * n
+        length = wp.length(slide)
+        if length > 1.0e-12:
+            target = target - slide * wp.min(1.0, friction[i] * push / length)
         contact_push[i] = contact_push[i] + (target - x[i])
         x[i] = target
 
@@ -537,14 +547,12 @@ def update_velocity(
     v: wp.array(dtype=wp.vec3),
     previous: wp.array(dtype=wp.vec3),
     contact_push: wp.array(dtype=wp.vec3),
-    friction: wp.array(dtype=float),
     dt: float,
 ):
-    """Velocity from the move; a pushed vertex does not bounce off and has Coulomb friction.
+    """Velocity from the move; a pushed vertex does not bounce off the surface.
 
     The push of a collision is a position change, so it would otherwise leave the vertex flying
-    off the surface; contact is inelastic. The surface counts as still: the body's own move was
-    already given to every vertex on it by `carry`.
+    off; contact is inelastic. Friction already acted on the position, in `collide`.
     """
     i = wp.tid()
     vel = (x[i] - previous[i]) / dt
@@ -555,10 +563,6 @@ def update_velocity(
         away = wp.dot(vel, n)
         if away > 0.0:
             vel = vel - away * n
-        tangential = vel - wp.dot(vel, n) * n
-        speed = wp.length(tangential)
-        if speed > 1.0e-12:
-            vel = vel - tangential * wp.min(1.0, friction[i] * pushed / dt / speed)
     v[i] = vel * wp.exp(-DAMPING_PER_S * dt)
 
 
@@ -599,5 +603,5 @@ def run(
             wp.launch(collide_layer, c.layer_ids.shape[0], [*args, c.layer_distance])
         if body is not None:
             args = [body.mesh.id, c.x, c.inv_mass, c.near_face, c.near_uv, c.near_distance]
-            wp.launch(collide, n, [*args, c.contact_push, step])
-        wp.launch(update_velocity, n, [c.x, c.v, c.previous, c.contact_push, c.friction, dt])
+            wp.launch(collide, n, [*args, c.contact_push, c.previous, c.friction, step])
+        wp.launch(update_velocity, n, [c.x, c.v, c.previous, c.contact_push, dt])

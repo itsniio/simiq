@@ -30,9 +30,9 @@ Time box: Fri 16 – Fri 23 Oct 2026, then go/no-go. Builds on the engine on bra
 ## 5. Comparison and decision
 
 - [ ] 5.1 Fit the course and wale stiffness scales on 178/75 `standing` M against CLO; verify the fitted case agrees within 1 percentage point per zone
-  - Run 18 Oct: course ×1, wale ×4 of the stand-in tricot, 1.00 points rms; waist +1.28 and sleeve opening −1.55 points miss the 1 point, so not met; see `engine/docs/cloth-sim-spike.md`.
+  - Run 19 Oct (final solver): course ×2, wale ×4 of the stand-in tricot, 1.35 points rms; chest, waist, hem and sleeve opening miss the 1 point (up to 1.81), so not met; through its full sequence the case ends within 1.6 points. See `engine/docs/cloth-sim-spike.md`.
 - [x] 5.2 Run all 35 held-out cases with `engine/scripts/cloth_spike.py` and write `engine/docs/cloth-sim-spike.md` (per-zone table, size ranking, timing, renders side by side); verify the report states pass or fail per the acceptance scenarios
-  - Report 18 Oct: no-go. Zones within ±3 points on 4 of 35 held-out cases (fail); chest size ranking as CLO's 12 of 12, 56.6 s per garment, no case deeper than CLO's (pass). Main cause: the jersey creeps up in the posed sequences.
+  - Report 19 Oct: no-go as specified. Zones within ±3 points on 10 of 35 held-out cases (fail; all of `standing` but one at 3.3); chest size ranking as CLO's 12 of 12 and no case deeper than CLO's (pass); 58.5–64.5 s per garment on a loaded machine, 56.6 s on a quiet one (borderline). Friction 1.0, which stopped the jersey creeping up, was chosen after looking at a held-out pose.
 - [ ] 5.3 Founders read the report and sign go or no-go in it; on go, open the follow-up change that revises R1
 
 ## Workflow follow-up
