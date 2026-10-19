@@ -421,6 +421,9 @@ def simulated_garment(size="M", scales=(1.0, 1.0), friction_knit=None, shear=Non
         inertia_scale=INERTIA_SCALE,
         friction=friction,
         shear_n_per_m=shear,
+        friction_kinetic=None
+        if KNIT_FRICTION_KINETIC is None
+        else np.full(len(garment.positions), KNIT_FRICTION_KINETIC),
     )
     return garment, cloth
 
@@ -505,6 +508,9 @@ FIT_GRID = (0.25, 0.5, 1.0, 2.0, 4.0)
 # 4.0, 10 people; the highest of six sites, dorsal forearm 0.31 ± 0.07, cotton, dry skin).
 # Tuned on the development body 178/75 (9 cases, 19 Oct) inside that spread: 0.65 (−1.3 SD).
 KNIT_FRICTION = 0.65
+# None: sliding keeps the static coefficient. CLO's avatar has static 0.8, kinetic 0.05 (the
+# projects' .avt); with them ours rides up even standing (report, "CLO's avatar friction").
+KNIT_FRICTION_KINETIC = None
 # Shear: a stretch weft knit's KES-FB1 rigidity, 0.28–1.50 cN/cm/deg (US 6,561,230 B1, Asahi
 # Kasei 2003), its geometric mean 0.648 → 37.1 N/m per rad; the range is 16.0–85.9 N/m.
 KNIT_SHEAR_N_PER_M = solver.kes_shear_n_per_m((0.28 * 1.50) ** 0.5)

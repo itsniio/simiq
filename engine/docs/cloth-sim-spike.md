@@ -206,6 +206,20 @@ Held-out, the 27 cases of 180/64, 176/88 and 192/82 (the same 27 in the literatu
 - **What the `hoods` hem does in our solver** (hem-zone strain every 10 frames, ours only; the sequence passes 180/64, 176/88 and 192/82 before 178/75). The lead-in to the pose stretches our hem over the flexing hips: S 31 → 46 %, L 21 → 30 %. CLO's S ends at 28 %, below its standing 32 %, so CLO's S slid up the hips where ours was carried along with the skin. On the slim body (180/64), our L hem goes slack (5 %) and creeps up. Back on 178/75 it stays there at 11 % (CLO 20 %).
 - **In CLO, the tightest size slides furthest.** Under Coulomb friction the slide does not depend on tension (the upward pull and the pressure both scale with it), so it should not depend on size. CLO's project has a global friction of 0.03 (`.smp`, `fFriction`), one substep of 1/30 s and natural mass (gravity −9800 mm/s²). The avatar's own static and kinetic friction (CLO's documented avatar property) is in an encoded file that could not be read. CLO's contact friction evidently does not behave like ours, and its parameters cannot be read out.
 
+**CLO's avatar friction (19 Oct).** The avatar in all three CLO projects (`simiq-anny-{standing,body,drops}-sequence.zprj`, file `_0.avt`, inner `.dan`) stores `fStaticFrictionCoefficient` 0.8 and `fKineticFrictionCoefficient` 0.05; the simulation properties (`.smp`) have a `fFriction` of 0.03, its meaning undocumented. CLO has no separate friction for the silicone gripper against the avatar. The solver now takes a kinetic coefficient per vertex (`cloth(..., friction_kinetic=…)`, tested; default the static one). Scored on 178/75 + 192/82, out of 18:
+
+| Try (static μ_s / kinetic μ_k, gripper) | within 3 | rms |
+|---|---|---|
+| CLO's 0.8 / 0.05, gripper as the knit, current constants | 3 | 5.01 |
+| the same, inertia ×1000 | 2 | 6.62 |
+| the same, the solver before tuning (compression ×0.1, bending 1e-6, inertia ×1000) | 0 | 7.24 |
+| 0.8 / 0.3, gripper 0.8 | 7 | 4.12 |
+| 0.8 / 0.5, gripper 0.8 | 6 | 3.95 |
+| 0.8 / 0.5, gripper 1.5 | 10 | 3.97 |
+| single μ 0.65, gripper 1.5 (kept) | 10 | 2.86 |
+
+With CLO's own values our jersey slides far more than CLO's. Even `standing` 178/75 M ends with the hem 15.5 points low and the waist 5.3 high, where CLO's stays put. CLO's coefficients therefore do not mean the same as ours: its contact solver, its skin offset, or how it decides that a vertex slides must differ. Every static/kinetic split rode the `hoods` hem up (M −14 to −20). None beat the single coefficient, so the jersey keeps μ 0.65 for both (`KNIT_FRICTION_KINETIC = None`). A default run reproduces the earlier files to 0.0 mm.
+
 All 36 cases, tuned; "(fitted)" marks the development body:
 
 | pose | size | body | chest | waist | hem | sleeve_opening | back_length | worst | deepest ours / CLO mm |

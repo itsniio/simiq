@@ -49,7 +49,8 @@ class Cloth:
     v: wp.array  # (n,) vec3 velocities, m/s
     previous: wp.array  # (n,) vec3 positions at the start of the substep
     inv_mass: wp.array  # (n,) 1/kg (scaled inertia), 0 for pinned vertices
-    friction: wp.array  # (n,) Coulomb coefficient of each vertex against what it touches
+    friction: wp.array  # (n,) static Coulomb coefficient of each vertex against what it touches
+    friction_kinetic: wp.array  # (n,) the coefficient once the vertex slides
     force: wp.array  # (n,) vec3 force on each vertex: its weight plus any load, N
     lam: wp.array  # (m,) vec3 λ of each triangle's course, wale and shear constraint
     hinge_lam: wp.array  # (h,) λ of each hinge
@@ -155,6 +156,7 @@ def cloth(
     inertia_scale=1.0,
     friction=None,
     shear_n_per_m=SHEAR_N_PER_M,
+    friction_kinetic=None,
 ) -> Cloth:
     """A cloth ready to simulate: rest triangles (course, wale) mm, faces, positions mm.
 
@@ -166,6 +168,7 @@ def cloth(
     on light cloth converges, but the cloth falls that much slower (only for load tests).
     friction: (n,) Coulomb coefficient per vertex, default FRICTION (a silicone gripper more).
     shear_n_per_m: the fabric's membrane shear modulus (τ = G γ), default SHEAR_N_PER_M.
+    friction_kinetic: (n,) the coefficient while a vertex slides, default the static one.
     """
     faces = np.asarray(faces)
     rest = np.asarray(rest_mm, float) / 1000
@@ -180,6 +183,7 @@ def cloth(
     force = np.zeros_like(x) if force_n is None else np.array(force_n, float)
     force[:, 1] -= mass * GRAVITY_M_S2
     stencils, weights, stiffness = hinges(faces, rest, area)
+    static = np.full(len(x), FRICTION) if friction is None else friction
     n = len(x)
     c = Cloth(
         faces=wp.array(faces.astype(np.int32), dtype=wp.vec3i),
@@ -198,7 +202,10 @@ def cloth(
         v=wp.zeros(n, dtype=wp.vec3),
         previous=wp.array(x, dtype=wp.vec3),
         inv_mass=wp.array(inv_mass, dtype=float),
-        friction=wp.array(np.full(n, FRICTION) if friction is None else friction, dtype=float),
+        friction=wp.array(static, dtype=float),
+        friction_kinetic=wp.array(
+            static if friction_kinetic is None else friction_kinetic, dtype=float
+        ),
         force=wp.array(force, dtype=wp.vec3),
         lam=wp.zeros(len(faces), dtype=wp.vec3),
         hinge_lam=wp.zeros(len(stencils), dtype=float),
@@ -399,6 +406,7 @@ def collide(
     contact_push: wp.array(dtype=wp.vec3),
     previous: wp.array(dtype=wp.vec3),
     friction: wp.array(dtype=float),
+    friction_kinetic: wp.array(dtype=float),
     step: int,
 ):
     """Push a vertex closer than COLLISION_MM to the body (or inside it) out to that distance.
@@ -456,14 +464,17 @@ def collide(
     near_distance[i] = signed
     if signed < COLLISION_MM / 1000.0:
         target = p + n * (COLLISION_MM / 1000.0)
-        # Coulomb friction on the substep's slide over the skin: held while it is within μ times
-        # the push, else shortened by that much (the body's own move was given by `carry`).
+        # Coulomb friction on the substep's slide over the skin: held while it is within μ_s times
+        # the push, else shortened by μ_k times it (the body's own move was given by `carry`).
         push = wp.length(target - x[i])
         slide = target - previous[i]
         slide = slide - wp.dot(slide, n) * n
         length = wp.length(slide)
         if length > 1.0e-12:
-            target = target - slide * wp.min(1.0, friction[i] * push / length)
+            if length <= friction[i] * push:
+                target = target - slide
+            else:
+                target = target - slide * (friction_kinetic[i] * push / length)
         contact_push[i] = contact_push[i] + (target - x[i])
         x[i] = target
 
@@ -624,5 +635,9 @@ def run(
             wp.launch(collide_layer, c.layer_ids.shape[0], [*args, c.layer_distance])
         if body is not None:
             args = [body.mesh.id, c.x, c.inv_mass, c.near_face, c.near_uv, c.near_distance]
-            wp.launch(collide, n, [*args, c.contact_push, c.previous, c.friction, step])
+            wp.launch(
+                collide,
+                n,
+                [*args, c.contact_push, c.previous, c.friction, c.friction_kinetic, step],
+            )
         wp.launch(update_velocity, n, [c.x, c.v, c.previous, c.contact_push, dt])

@@ -200,15 +200,15 @@ def box(low, high):
     return corners, np.array([t for a, b, c, d in quads for t in ((a, b, c), (a, c, d))])
 
 
-def sideways_slide(pull_times_friction):
-    """How far a 40 × 40 mm sheet lying on a box slides in 1 s under a sideways pull."""
+def sideways_slide(pull_times_friction, seconds=1.0, kinetic=FRICTION):
+    """How far a 40 × 40 mm sheet lying on a box slides under a sideways pull."""
     positions, faces, rest = grid(5, 5, 10.0)
     sheet_xz = np.c_[positions[:, 0], np.full(len(positions), COLLISION_MM), positions[:, 1]]
     weight = KNIT.weight_g_m2 / 1000 * 0.04 * 0.04 * 9.81  # N
     pull = np.zeros_like(sheet_xz)
     pull[:, 0] = pull_times_friction * FRICTION * weight / len(pull)
-    sheet = cloth(rest, faces, sheet_xz, KNIT, force_n=pull)
-    run(sheet, seconds=1.0, body=body(*box((-50, -20, -90), (90, 0, 50))))
+    sheet = cloth(rest, faces, sheet_xz, KNIT, force_n=pull, friction_kinetic=np.full(25, kinetic))
+    run(sheet, seconds=seconds, body=body(*box((-50, -20, -90), (90, 0, 50))))
     return positions_mm(sheet)[:, 0].mean() - sheet_xz[:, 0].mean()
 
 
@@ -217,6 +217,19 @@ def test_cloth_resting_on_a_body_holds_until_the_pull_beats_friction():
     # it slides (a = μW / m = μ · 9.81 m/s², over 1 s far more than 5 mm).
     assert abs(sideways_slide(0.5)) < 0.5
     assert sideways_slide(2.0) > 5.0
+
+
+def test_once_sliding_the_cloth_feels_only_kinetic_friction():
+    # A pull of 1.2 μ_s W beats static friction. Sliding, the net force is (1.2 − μ_k/μ_s) μ_s W:
+    # a = 0.2 · 9.81 = 1.96 m/s² at μ_k = μ_s, (1.2 − 0.1) · 9.81 = 10.79 m/s² at μ_k = 0.1 μ_s.
+    # Damped at k = 2/s from rest, x = a/k · (t − (1 − e^(−kt))/k); at t = 0.05 s that is
+    # a · 0.0012096 s²: 2.37 mm and 13.05 mm.
+    assert sideways_slide(1.2, seconds=0.05) == pytest.approx(2.37, rel=0.25)
+    assert sideways_slide(1.2, seconds=0.05, kinetic=0.1 * FRICTION) == pytest.approx(
+        13.05, rel=0.25
+    )
+    # Below the static threshold the low kinetic coefficient does not matter: it holds.
+    assert abs(sideways_slide(0.5, kinetic=0.1 * FRICTION)) < 0.5
 
 
 def sheared(shear_n_per_m):
