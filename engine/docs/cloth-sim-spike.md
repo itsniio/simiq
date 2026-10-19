@@ -198,6 +198,14 @@ The tries on 178/75, within ±3 points out of 9, and rms over the 45 zone differ
 
 Held-out, the 27 cases of 180/64, 176/88 and 192/82 (the same 27 in the literature run in brackets): `standing` 9 of 9 (8), `hoods` 1 of 9 (2), `drops` 3 of 9 (0), **13 of 27 (10)**. The constants are now the defaults (`COMPRESSION_SCALE`, `BENDING_N_M` in `drape.py`; `INERTIA_SCALE`, `KNIT_FRICTION` in `cloth_spike.py`). A run without `SPIKE_TRY` reproduces the chosen try to 0.0 mm. The literature run is kept as `report 0.9 37.131909013743595`.
 
+**Second round: two development bodies (19 Oct).** The founders asked for more effort and for tuning on two bodies as well, to compare. `dev 178-75 192-82` scores 18 cases; every try was scored on both sets (all four bodies are in every run file), and `180/64` and `176/88` stayed held out for both. 192/82 was not held out before: its rows were in the literature and the one-body tables.
+
+- The best on two bodies is compression ×1.0 with μ 0.5 (inertia ×1000, bending 1e-6): 12 of 18, rms 3.93 points. The one-body choice gives 10 of 18, rms 2.86.
+- On the 18 cases of 180/64 and 176/88, held out by both: **9 of 18 either way** (rms 5.88 one-body, 6.55 two-body). Both pass all six `standing` cases and `drops` on 180/64 (2 or 3 of 3). Both fail `hoods` (1 of 6 or 0 of 6) and `drops` on 176/88. A second body did not generalize better.
+- **Tried in this round and dropped.** Silicone gripper at μ 3.0: the L hem holds, the S hem stays +14 on the hips. Friction falling with load (exponent −1/3 at μ₀ 0.9 and 1.1, −0.15 at μ₀ 0.75): every `hoods` hem rides up, 8–10 of 18.
+- **What the `hoods` hem does in our solver** (hem-zone strain every 10 frames, ours only; the sequence passes 180/64, 176/88 and 192/82 before 178/75). The lead-in to the pose stretches our hem over the flexing hips: S 31 → 46 %, L 21 → 30 %. CLO's S ends at 28 %, below its standing 32 %, so CLO's S slid up the hips where ours was carried along with the skin. On the slim body (180/64), our L hem goes slack (5 %) and creeps up. Back on 178/75 it stays there at 11 % (CLO 20 %).
+- **In CLO, the tightest size slides furthest.** Under Coulomb friction the slide does not depend on tension (the upward pull and the pressure both scale with it), so it should not depend on size. CLO's project has a global friction of 0.03 (`.smp`, `fFriction`), one substep of 1/30 s and natural mass (gravity −9800 mm/s²). The avatar's own static and kinetic friction (CLO's documented avatar property) is in an encoded file that could not be read. CLO's contact friction evidently does not behave like ours, and its parameters cannot be read out.
+
 All 36 cases, tuned; "(fitted)" marks the development body:
 
 | pose | size | body | chest | waist | hem | sleeve_opening | back_length | worst | deepest ours / CLO mm |

@@ -663,23 +663,26 @@ def report(friction=None, shear=None):
         )
 
 
-def dev():
-    """The development body's nine cases, ours − CLO per zone; never looks at the other bodies."""
+def dev(*bodies):
+    """The development bodies' cases, ours − CLO per zone; never looks at the other bodies."""
+    bodies = bodies or (DEV_BODY,)
     sets = dict(np.load(ZONES))
     clo = zone_strain_table()
     diffs, within = [], 0
     for pose in POSES:
         for size in ("S", "M", "L"):
             data = np.load(OURS / f"{pose}-{size}{TRY}.npz")
-            ours = zone_strains(jersey(size), data[DEV_BODY], sets)
-            diff = {z: (ours[z] - clo[pose, size, DEV_BODY][z]) * 100 for z in ZONE_NAMES}
-            diffs += list(diff.values())
-            worst = max(abs(d) for d in diff.values())
-            within += worst <= 3
-            print(f"{pose:8} {size}: " + " ".join(f"{z} {diff[z]:+5.1f}" for z in ZONE_NAMES)
-                  + f" | worst {worst:4.1f}")  # fmt: skip
+            for b in bodies:
+                ours = zone_strains(jersey(size), data[b], sets)
+                diff = {z: (ours[z] - clo[pose, size, b][z]) * 100 for z in ZONE_NAMES}
+                diffs += list(diff.values())
+                worst = max(abs(d) for d in diff.values())
+                within += worst <= 3
+                cells = " ".join(f"{z} {diff[z]:+5.1f}" for z in ZONE_NAMES)
+                print(f"{pose:8} {size} {b}: {cells} | worst {worst:4.1f}")
     rms = float(np.sqrt(np.mean(np.square(diffs))))
-    print(f"{DEV_BODY}{TRY}: within ±3 points {within} of 9, rms {rms:.2f} points")
+    n = 9 * len(bodies)
+    print(f"{'+'.join(bodies)}{TRY}: within ±3 points {within} of {n}, rms {rms:.2f} points")
 
 
 RENDERS = Path(__file__).parents[1] / "docs" / "cloth-sim-spike"  # renders may be committed
