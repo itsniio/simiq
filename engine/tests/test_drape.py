@@ -208,3 +208,33 @@ def test_cloth_resting_on_a_body_holds_until_the_pull_beats_friction():
     # it slides (a = μW / m = μ · 9.81 m/s², over 1 s far more than 5 mm).
     assert abs(sideways_slide(0.5)) < 0.5
     assert sideways_slide(2.0) > 5.0
+
+
+def sheared(shear_n_per_m):
+    """How far the top edge of a 100 mm wide, 10 mm high strip moves under a 0.2 N sideways pull.
+
+    Wide and low, so that the strip shears rather than bends like a cantilever (a square sheet
+    moved 4–5 mm more than its shear alone, through its soft compression side).
+    """
+    positions, faces, rest = grid(21, 3, 5.0)
+    pull = np.zeros_like(positions)
+    pull[np.arange(21), 0] = 0.2 / 21  # the top row
+    sheet = cloth(
+        rest,
+        faces,
+        positions,
+        KNIT,
+        pinned=np.arange(42, 63),  # the bottom row
+        force_n=pull,
+        inertia_scale=1000,
+        shear_n_per_m=shear_n_per_m,
+    )
+    run(sheet, seconds=4.0)
+    return positions_mm(sheet)[np.arange(21), 0].mean() - positions[np.arange(21), 0].mean()
+
+
+def test_shear_stiffness_is_the_membrane_shear_modulus():
+    # 0.2 N along a 100 mm edge is τ = 2 N/m; γ = τ / G and the top edge moves γ · 10 mm:
+    # G = 20 N/m → 0.1 rad → 1.0 mm; G = 40 N/m → 0.5 mm.
+    assert sheared(20.0) == pytest.approx(1.0, rel=0.1)
+    assert sheared(40.0) == pytest.approx(0.5, rel=0.1)

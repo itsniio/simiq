@@ -17,7 +17,7 @@ GRAVITY_M_S2 = 9.81
 SUBSTEPS_PER_S = 500
 ITERATIONS = 2
 DAMPING_PER_S = 2.0  # velocity decays by e^(−2·t)
-SHEAR_N_PER_M = 20.0  # in-plane shear stiffness; not measured, a spike guess
+SHEAR_N_PER_M = 20.0  # membrane shear modulus, N/m per rad; not measured, a spike guess
 COMPRESSION_SCALE = (
     0.1  # a knit buckles when pushed: compression resists at 10 % of the first slope
 )
@@ -36,6 +36,7 @@ class Cloth:
     dm_inv: wp.array  # (m,) mat22, inverse of each triangle's rest edges in m
     area: wp.array  # (m,) rest area, m²
     stiffness_scale: wp.array  # (m,) multiplier of the fabric's stretch and shear stiffness
+    shear: float  # membrane shear modulus, N/m per radian
     colours: list  # wp.arrays of triangle indices, no shared vertex within one
     hinges: wp.array  # (h,) vec4i: the edge's two vertices, then the two opposite ones
     hinge_k: wp.array  # (h,) vec4: bending weights K of the four vertices, 1/m
@@ -139,6 +140,7 @@ def cloth(
     layer=None,
     inertia_scale=1.0,
     friction=None,
+    shear_n_per_m=SHEAR_N_PER_M,
 ) -> Cloth:
     """A cloth ready to simulate: rest triangles (course, wale) mm, faces, positions mm.
 
@@ -149,6 +151,7 @@ def cloth(
     inertia_scale: inertia × this, weight unchanged: the settled state is the same, a heavy load
     on light cloth converges, but the cloth falls that much slower (only for load tests).
     friction: (n,) Coulomb coefficient per vertex, default FRICTION (a silicone gripper more).
+    shear_n_per_m: the fabric's membrane shear modulus (τ = G γ), default SHEAR_N_PER_M.
     """
     faces = np.asarray(faces)
     rest = np.asarray(rest_mm, float) / 1000
@@ -171,6 +174,7 @@ def cloth(
         stiffness_scale=wp.array(
             np.ones(len(faces)) if stiffness_scale is None else stiffness_scale, dtype=float
         ),
+        shear=shear_n_per_m,
         colours=colour(faces),
         hinges=wp.array(stencils, dtype=wp.vec4i),
         hinge_k=wp.array(weights, dtype=wp.vec4),
@@ -310,6 +314,7 @@ def solve_triangles(
     wale_strain: wp.array(dtype=float),
     wale_tension: wp.array(dtype=float),
     lams: wp.array(dtype=wp.vec3),
+    shear: float,
     dt: float,
 ):
     t = ids[wp.tid()]
@@ -331,7 +336,7 @@ def solve_triangles(
     # Shear: C = F·u · F·v, zero while the course and wale lines stay square.
     g1 = d[0, 0] * fv + d[0, 1] * fu
     g2 = d[1, 0] * fv + d[1, 1] * fu
-    ls = project(x, w, f[0], f[1], f[2], g1, g2, wp.dot(fu, fv), area * SHEAR_N_PER_M, lam[2], dt)
+    ls = project(x, w, f[0], f[1], f[2], g1, g2, wp.dot(fu, fv), area * shear, lam[2], dt)
     lams[t] = wp.vec3(lc, lw, ls)
 
 
@@ -593,7 +598,9 @@ def run(
         for _ in range(iterations):
             for ids in c.colours:
                 args = [ids, c.faces, c.dm_inv, c.area, c.stiffness_scale, c.x, c.inv_mass]
-                wp.launch(solve_triangles, ids.shape[0], [*args, *c.course, *c.wale, c.lam, dt])
+                wp.launch(
+                    solve_triangles, ids.shape[0], [*args, *c.course, *c.wale, c.lam, c.shear, dt]
+                )
         for ids in c.hinge_colours:
             args = [ids, c.hinges, c.hinge_k, c.hinge_stiffness, c.x, c.inv_mass, c.hinge_lam, dt]
             wp.launch(solve_hinges, ids.shape[0], args)

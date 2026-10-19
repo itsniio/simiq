@@ -10,6 +10,7 @@ uv run python scripts/cloth_spike.py timing        # one garment on one body on 
 uv run python scripts/cloth_spike.py fit           # course and wale stiffness scales (task 5.1)
 uv run python scripts/cloth_spike.py simulate hoods M   # our drape through CLO's sequence (5.2)
 uv run python scripts/cloth_spike.py report        # ours against CLO on all 36 cases (task 5.2)
+uv run python scripts/cloth_spike.py calibrate     # knit friction and shear on 178/75 M posed
 uv run python scripts/cloth_spike.py render hoods M 176-88  # CLO and ours side by side (5.2)
 """
 
@@ -67,7 +68,7 @@ BACK_PANEL = 14
 POCKET_LAYER_MM = 2.2  # CLO's start drape: pocket p5 6.7–6.8 mm off the body, back panel 4.6 mm
 GRIPPER = "Material157617"  # the silicone hem grippers, front and back; left out of the cloth
 GRIPPER_MM = 3.0  # fabric vertices this close to the silicone carry it
-GRIPPER_FRICTION = 1.5  # silicone on skin; a spike guess (the knit has solver.FRICTION)
+GRIPPER_FRICTION = 1.5  # silicone on skin; a spike guess (the knit has KNIT_FRICTION)
 INERTIA_SCALE = 1000.0  # without it 500 × 2 passes do not converge on the jersey: every stiffness
 # gave the same drape (fit, 18 Oct: 3.46 points rms for all 25 scales); the body carries the cloth
 OURS = SPIKE_DIR / "ours"  # our drapes, outside git like CLO's
@@ -388,8 +389,11 @@ def jersey(size="M"):
     return load_garment(MESH, uv_mm(), shrinkage(size), FABRIC, start, trims=ZIPPER)
 
 
-def simulated_garment(size="M", scales=(1.0, 1.0)):
-    """The starting drape with its zipper, ready for our solver."""
+def simulated_garment(size="M", scales=(1.0, 1.0), friction_knit=None, shear=None):
+    """The starting drape with its zipper, ready for our solver (knit friction and shear given,
+    or the calibrated ones)."""
+    friction_knit = KNIT_FRICTION if friction_knit is None else friction_knit
+    shear = KNIT_SHEAR_N_PER_M if shear is None else shear
     garment = jersey(size)
     pocket = np.unique(garment.faces[np.isin(garment.piece, POCKET_PIECES)])
     back = garment.faces[garment.piece == BACK_PANEL]
@@ -399,7 +403,7 @@ def simulated_garment(size="M", scales=(1.0, 1.0)):
     low, high = start[silicone].min(0) - GRIPPER_MM, start[silicone].max(0) + GRIPPER_MM
     near = np.where(((garment.positions > low) & (garment.positions < high)).all(1))[0]
     _, gap = nearest(garment.positions[near], start[silicone])
-    friction = np.full(len(garment.positions), solver.FRICTION)
+    friction = np.full(len(garment.positions), friction_knit)
     friction[near[gap < GRIPPER_MM]] = GRIPPER_FRICTION
     zipper = np.where(garment.piece >= len(shrinkage(size)), ZIPPER_STIFFNESS, 1.0)
     cloth = solver.cloth(
@@ -411,6 +415,7 @@ def simulated_garment(size="M", scales=(1.0, 1.0)):
         layer=(pocket, back, POCKET_LAYER_MM),
         inertia_scale=INERTIA_SCALE,
         friction=friction,
+        shear_n_per_m=shear,
     )
     return garment, cloth
 
@@ -489,7 +494,16 @@ def zone_strains(garment, positions, sets):
 # 178/75 standing M on FIT_GRID, 1.35 points rms (×1/×4: 1.37). Chest −1.34, waist +1.52,
 # hem −1.81, sleeve opening −1.22, back length +0.41 points against CLO.
 FITTED_SCALES = (2.0, 4.0)  # (course, wale) × the stand-in fabric's tension
-FIT_GRID = (0.25, 0.5, 1.0, 2.0, 4.0)  # scales tried per direction, a factor 2 apart
+FIT_GRID = (0.25, 0.5, 1.0, 2.0, 4.0)
+# `calibrate` on 19 Oct over CALIBRATION_GRID, hoods and drops 178/75 M: friction 1.0 with shear
+# 40 N/m, 2.48 points rms (worst 3.75); 20 N/m 2.61, 80 N/m 3.03; friction 0.7 and 1.4 ≥ 5.90.
+KNIT_FRICTION = 1.0  # fabric on skin, until measured (report: "Measuring friction and shear")
+KNIT_SHEAR_N_PER_M = 40.0  # the knit's membrane shear modulus, until measured
+CALIBRATION = [("hoods", "M", "178-75"), ("drops", "M", "178-75")]  # fitted body and size, posed
+CALIBRATION_GRID = {
+    "friction": (0.5, 0.7, 1.0, 1.4),
+    "shear": (20.0, 40.0, 80.0),
+}  # scales tried per direction, a factor 2 apart
 FIT_SETTLE_S = 3.0  # the fitted case settles this long on the static start body
 
 
@@ -519,11 +533,16 @@ def fit():
           + " ".join(f"{z} {(ours[z] - clo[z]) * 100:+.2f}" for z in ZONE_NAMES))  # fmt: skip
 
 
-def simulate(pose, size):
-    """Task 5.2: our drape through the point cache that drove CLO's run, saved at its frames."""
+def simulate(pose, size, friction=None, shear=None):
+    """Task 5.2: our drape through the point cache that drove CLO's run, saved at its frames.
+
+    With friction and shear given (a calibration try) the file is named after them.
+    """
     import time
 
-    _, cloth = simulated_garment(size, FITTED_SCALES)
+    tried = friction is not None
+    friction, shear = (float(friction), float(shear)) if tried else (None, None)
+    _, cloth = simulated_garment(size, FITTED_SCALES, friction, shear)
     frames = read_pc2(START_BODY.parent / BODY_SEQUENCES[pose]).astype(float) * 10
     lead = read_pc2(START_BODY.parent / LEAD_IN[pose]) * 10.0 if pose in LEAD_IN else frames[:1]
     wanted = {frame: body for body, frame in FRAMES[pose].items() if body != "start"}
@@ -541,8 +560,33 @@ def simulate(pose, size):
     seconds = time.perf_counter() - t0
     OURS.mkdir(exist_ok=True)
     steps = len(lead) - 1 + max(wanted)
-    np.savez(OURS / f"{pose}-{size}.npz", wall_s=seconds, frames=steps, **saved)
+    name = f"{pose}-{size}-mu{friction}-g{shear}" if tried else f"{pose}-{size}"
+    np.savez(OURS / f"{name}.npz", wall_s=seconds, frames=steps, **saved)
     print(f"{pose} {size}: {steps} frames in {seconds:.0f} s")
+
+
+def calibrate():
+    """Knit friction and shear from the fitted body and size in the two poses (the others held out).
+
+    Scores the tries `simulate <pose> M <friction> <shear>` left on CALIBRATION_GRID.
+    """
+    sets = dict(np.load(ZONES))
+    garment = jersey("M")
+    clo = zone_strain_table()
+    results = []
+    for friction in CALIBRATION_GRID["friction"]:
+        for shear in CALIBRATION_GRID["shear"]:
+            diffs = []
+            for pose, size, b in CALIBRATION:
+                data = np.load(OURS / f"{pose}-{size}-mu{friction}-g{shear}.npz")
+                ours = zone_strains(garment, data[b], sets)
+                diffs += [(ours[z] - clo[pose, size, b][z]) * 100 for z in ZONE_NAMES]
+            rms = float(np.sqrt(np.mean(np.square(diffs))))
+            results.append((rms, friction, shear, max(abs(d) for d in diffs)))
+            print(f"friction {friction:<4} shear {shear:5.0f} N/m: rms {rms:5.2f}, "
+                  f"worst {results[-1][3]:5.2f} points")  # fmt: skip
+    rms, friction, shear, worst = min(results)
+    print(f"best: friction {friction}, shear {shear} N/m (rms {rms:.2f}, worst {worst:.2f} points)")
 
 
 def report():
@@ -570,7 +614,7 @@ def report():
     failing = []
     for (pose, size, b), row in ours.items():
         diff = {z: (row[z] - clo[pose, size, b][z]) * 100 for z in ZONE_NAMES}
-        fitted = (pose, size, b) == ("standing", "M", "178-75")
+        fitted = (pose, size, b) == ("standing", "M", "178-75") or (pose, size, b) in CALIBRATION
         worst = max(abs(d) for d in diff.values())
         if worst > 3 and not fitted:
             failing.append((pose, size, b, worst))
@@ -581,7 +625,10 @@ def report():
         mark = " (fitted)" if fitted else ""
         print(f"| {pose} | {size} | {b}{mark} | {cells} | {worst:.1f} | "
               f"{depth[pose, size, b][0]:.1f} / {depth[pose, size, b][1]:.1f} |")  # fmt: skip
-    print(f"\nheld-out cases within ±3 points in every zone: {35 - len(failing)} of 35")
+    held_out = 35 - len(CALIBRATION)
+    print(
+        f"\nheld-out cases within ±3 points in every zone: {held_out - len(failing)} of {held_out}"
+    )
     print("failing:", [(p, s, b, round(w, 1)) for p, s, b, w in failing])
     order = {}
     for source, table in (("ours", ours), ("CLO", clo)):
@@ -743,6 +790,7 @@ if __name__ == "__main__":
         "fit": fit,
         "simulate": simulate,
         "report": report,
+        "calibrate": calibrate,
         "render": render,
     }
     commands[sys.argv[1]](*sys.argv[2:])

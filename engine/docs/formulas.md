@@ -321,3 +321,13 @@ Tests: a 40 × 40 mm sheet lying on a box under its weight W = 190 g/m² · (0.0
 **The body carries the cloth on it.** Before each substep, when the body moves, every vertex within `CARRY_MM` = 10 mm of it (its nearest face and point from the last collision pass) moves by the body's own displacement at that point; the constraints then settle the cloth from there. A tight garment does go where the skin under it goes; this replaces the gravity and friction that would take S times longer with scaled inertia. Test: a tube on a cylinder that slides 50 mm along its axis in 0.5 s moves 50 mm with it (friction alone, before: 42 mm; with the body's velocity also in the friction: 86.6 mm, counted twice).
 
 Tests: the spec's 84 cm tube on a 96 cm cylinder (the cylinder `COLLISION_MM` thinner, so the garment's midsurface lies on 96 cm) settles at 14.29 % course strain with no vertex inside the cylinder.
+
+### Shear modulus from a bias strip (measurement proposal, `cloth_spike.py` `KNIT_SHEAR_N_PER_M`)
+
+The solver's shear constraint C = (F·u)·(F·v) is, for small strains, the engineering shear strain γ, and its energy ½ A G γ² gives a membrane shear stress τ = G γ: G is the fabric's in-plane shear modulus in N/m per radian. Test (`shear_stiffness_is_the_membrane_shear_modulus`): a strip 100 mm wide and 10 mm high, pulled 0.2 N along its top edge, carries τ = 0.2 / 0.1 = 2 N/m; at G = 20 N/m, γ = 0.1 and the edge moves 0.1 × 10 = 1.0 mm (measured 1.05), at G = 40 N/m 0.5 mm (0.54). A square sheet moved 4–5 mm more than that: it bent like a cantilever through its soft compression side, so shear has to be tested on a wide, low strip.
+
+G is measured without a shear tester from three strip tests on the existing rig. With membrane moduli E_c and E_w (the slopes of the course and wale curves at small strain, N/m), E₄₅ that of a strip cut at 45° to the course, and ν_cw the width contraction of a course strip over its stretch, an orthotropic membrane obeys
+
+    1/E₄₅ = ¼ · (1/E_c + 1/E_w + 1/G − 2ν_cw/E_c)   →   G = 1 / (4/E₄₅ − 1/E_c − 1/E_w + 2ν_cw/E_c)
+
+Example with the example knit's 400 and 600 N/m, a bias strip of 100 N/m and ν = 0.3: 4/100 − 1/400 − 1/600 + 0.6/400 = 0.04 − 0.0025 − 0.001667 + 0.0015 = 0.037333, G = 26.8 N/m. A KES-FB1 shear tester gives G in gf/cm/deg; × 56.19 makes N/m per radian (0.00981 N / 0.01 m / (π/180)).
