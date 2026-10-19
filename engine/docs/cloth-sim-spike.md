@@ -113,6 +113,36 @@ The sleeves still ride 7–13 mm up the arm on the start body and the pocket edg
 
 What still fails: the `hoods` hem, which in our solver either stays on the hips or rides up to the waist, and the three `drops` cases of 176/88, where CLO pinches the underarm. The founders cannot measure friction and shear, so no measured run will follow inside the time box.
 
+### Decision (task 5.3), for the founders to sign
+
+**Summary.** Our own solver (Python + Warp, on the Mac CPU, 56 s per garment) reproduces CLO on the jersey **standing**: all 9 held-out standing cases are within ±3 points in every zone, and the sizes rank as in CLO's on every body and pose. It does **not** reproduce CLO **in the riding poses**. In `hoods` our hem either stays on the hips or rides up to the waist where CLO's stops halfway (1 of 9 held out). In `drops`, 3 of 9 pass, and 176/88's underarm is off by 20–32 points where CLO pinches it. Against the acceptance scenarios that is a no-go: 13 of 27 held-out cases within ±3 points, and penetration ≤ CLO on 31 of 36.
+
+| Acceptance scenario | Result | |
+|---|---|---|
+| every zone within ±3 points of CLO on every held-out case | 13 of 27 (standing 9/9, hoods 1/9, drops 3/9) | fail |
+| sizes rank in the same order of chest strain as CLO | 12 of 12 | pass |
+| one garment on one body under 60 s on the founder's Mac | 56.0 s | pass |
+| no case deeper into the body than CLO's (ruling 7) | 31 of 36 (four of the five outside the skin, one 0.1 mm deeper) | fail |
+| 5.1: the fitted case within 1 point per zone | 1.35 points rms at the constants before tuning, four zones miss | fail |
+
+**Recommendation: no-go.** R1 stays as it is: the fit engine compares girths with points of measure, and demo day runs on the CLO videos (proposal). No follow-up change revising R1 is opened.
+
+**The agent's own decisions, which the signature approves or rejects:**
+
+1. Friction and shear came from the literature, not from measurement (the founders could not measure). The friction was then tuned on the development body inside the published spread, to 0.65.
+2. The solver was tuned on one development body, 178/75 (compression ×1.0, bending 1e-5, inertia ×200, friction 0.65), and scored once on the other 27 cases. The founders asked for this. The agent had already seen the literature run's 35-case table.
+3. Group 5 changed the weld scenario in the spec from 0.5 to 1 mm (the back pockets' seam lies 0.5–1 mm off in CLO's drape). Ruling 8 (sleeve opening reported only) was left to the agent.
+4. CLO's avatar friction (static 0.8, kinetic 0.05) was read from the project files, tried, and not adopted.
+
+**What a standing-only use would need** (not part of this change): a new change with its own grill. It would have to cover how the engine would use a standing-only simulation, and what the 176/88 pinch and the 4.6 mm collision distance mean for pressure.
+
+**Signatures**
+
+| Founder | Go / no-go | Date |
+|---|---|---|
+| | | |
+| | | |
+
 **How it was run.** `simulate <pose> <size>` drives our drape through the very point cache that drove CLO's run of that pose (and, for `hoods` and `drops`, first through the 178/75 A-pose → hoods animation that brought CLO's garment there: those caches start in the pose, 672 mm from the starting drape's body) and saves our garment at CLO's case frames; nine runs side by side, 2.4–4.5 min each. `report` scores both with the same zone metric (group 3) and checks penetration with the winding-number test. Fabric: the stand-in tricot × the fitted scales; friction and shear from the literature (final run) or as calibrated below (the run before it).
 
 **5.1 Fit.** Course and wale tension scales on a 5 × 5 grid (×0.25 … ×4), the case settling 3 s on 178/75 `standing` from CLO's starting drape: best course ×2, wale ×4, 1.35 points rms. Per zone, ours − CLO: chest −1.34, waist +1.52, hem −1.81, sleeve opening −1.22, back length +0.41 points. Four zones miss the 1 point, so 5.1 is not met. Mostly the course/wale ratio matters (×1/×4: 1.37 rms). Through its whole sequence the same case ends within 1.6 points in every zone.
