@@ -37,7 +37,7 @@ class Cloth:
     area: wp.array  # (m,) rest area, m²
     stiffness_scale: wp.array  # (m,) multiplier of the fabric's stretch and shear stiffness
     shear: float  # membrane shear modulus, N/m per radian
-    colours: list  # wp.arrays of triangle indices, no shared vertex within one
+    colours: list  # wp.arrays of triangle indices, one launch each (see `launches`)
     hinges: wp.array  # (h,) vec4i: the edge's two vertices, then the two opposite ones
     hinge_k: wp.array  # (h,) vec4: bending weights K of the four vertices, 1/m
     hinge_stiffness: wp.array  # (h,) J per rad²
@@ -85,6 +85,17 @@ def colour(stencils: np.ndarray) -> list[np.ndarray]:
         wp.array(np.where(colours == c)[0].astype(np.int32), dtype=int)
         for c in range(colours.max() + 1)
     ]
+
+
+def launches(colours: list) -> list:
+    """The launches that solve these colours: one per colour, or one in all on the CPU.
+
+    A CPU launch runs its threads one after another, so one launch over the colours' indices
+    in order does exactly what one launch per colour does, without the launch overhead.
+    """
+    if not colours or not wp.get_device().is_cpu:
+        return colours
+    return [wp.array(np.concatenate([c.numpy() for c in colours]), dtype=int)]
 
 
 def curve_arrays(fabric: Fabric, direction: str):
@@ -175,11 +186,11 @@ def cloth(
             np.ones(len(faces)) if stiffness_scale is None else stiffness_scale, dtype=float
         ),
         shear=shear_n_per_m,
-        colours=colour(faces),
+        colours=launches(colour(faces)),
         hinges=wp.array(stencils, dtype=wp.vec4i),
         hinge_k=wp.array(weights, dtype=wp.vec4),
         hinge_stiffness=wp.array(stiffness, dtype=float),
-        hinge_colours=colour(stencils) if len(stencils) else [],
+        hinge_colours=launches(colour(stencils)) if len(stencils) else [],
         x=wp.array(x, dtype=wp.vec3),
         v=wp.zeros(n, dtype=wp.vec3),
         previous=wp.array(x, dtype=wp.vec3),
