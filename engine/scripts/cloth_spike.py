@@ -10,11 +10,14 @@ uv run python scripts/cloth_spike.py timing        # one garment on one body on 
 uv run python scripts/cloth_spike.py fit           # course and wale stiffness scales (task 5.1)
 uv run python scripts/cloth_spike.py simulate hoods M   # our drape through CLO's sequence (5.2)
 uv run python scripts/cloth_spike.py report        # ours against CLO on all 36 cases (task 5.2)
+uv run python scripts/cloth_spike.py dev           # ours against CLO on the development body only
+SPIKE_TRY="COMPRESSION_SCALE=0.3" uv run python scripts/cloth_spike.py simulate hoods M  # one try
 uv run python scripts/cloth_spike.py calibrate     # knit friction and shear on 178/75 M posed
 uv run python scripts/cloth_spike.py render hoods M 176-88  # CLO and ours side by side (5.2)
 """
 
 import json
+import os
 import struct
 import sys
 from pathlib import Path
@@ -69,9 +72,11 @@ POCKET_LAYER_MM = 2.2  # CLO's start drape: pocket p5 6.7–6.8 mm off the body,
 GRIPPER = "Material157617"  # the silicone hem grippers, front and back; left out of the cloth
 GRIPPER_MM = 3.0  # fabric vertices this close to the silicone carry it
 GRIPPER_FRICTION = 1.5  # silicone on skin; a spike guess (the knit has KNIT_FRICTION)
-INERTIA_SCALE = 1000.0  # without it 500 × 2 passes do not converge on the jersey: every stiffness
-# gave the same drape (fit, 18 Oct: 3.46 points rms for all 25 scales); the body carries the cloth
+INERTIA_SCALE = 200.0  # without it 500 × 2 passes do not converge on the jersey: every stiffness
+# gave the same drape (fit, 18 Oct: 3.46 points rms for all 25 scales); the body carries the cloth.
+# 1000 until 19 Oct: weight then pulls cloth back down at ≤ 5 mm/s, and the hoods hem rode up.
 OURS = SPIKE_DIR / "ours"  # our drapes, outside git like CLO's
+DEV_BODY = "178-75"  # solver changes are judged on this body only; the other three stay held out
 BODIES = ("178-75", "180-64", "176-88", "192-82")
 POSES = ("standing", "hoods", "drops")
 SIZE_FACTOR = {
@@ -498,8 +503,8 @@ FIT_GRID = (0.25, 0.5, 1.0, 2.0, 4.0)
 # Literature, not fitted (19 Oct; founders: no time to measure). Fabric on skin: static μ of a
 # single-jersey knit on the chest, 0.90 ± 0.19 (Temel et al., Tribol. Lett. 70 (2022) 23, CC BY
 # 4.0, 10 people; the highest of six sites, dorsal forearm 0.31 ± 0.07, cotton, dry skin).
-KNIT_FRICTION = 0.90
-KNIT_FRICTION_SD = 0.19
+# Tuned on the development body 178/75 (9 cases, 19 Oct) inside that spread: 0.65 (−1.3 SD).
+KNIT_FRICTION = 0.65
 # Shear: a stretch weft knit's KES-FB1 rigidity, 0.28–1.50 cN/cm/deg (US 6,561,230 B1, Asahi
 # Kasei 2003), its geometric mean 0.648 → 37.1 N/m per rad; the range is 16.0–85.9 N/m.
 KNIT_SHEAR_N_PER_M = solver.kes_shear_n_per_m((0.28 * 1.50) ** 0.5)
@@ -567,7 +572,7 @@ def simulate(pose, size, friction=None, shear=None):
     seconds = time.perf_counter() - t0
     OURS.mkdir(exist_ok=True)
     steps = len(lead) - 1 + max(wanted)
-    name = f"{pose}-{size}-mu{friction}-g{shear}" if tried else f"{pose}-{size}"
+    name = (f"{pose}-{size}-mu{friction}-g{shear}" if tried else f"{pose}-{size}") + TRY
     np.savez(OURS / f"{name}.npz", wall_s=seconds, frames=steps, **saved)
     print(f"{pose} {size}: {steps} frames in {seconds:.0f} s")
 
@@ -601,7 +606,7 @@ def report(friction=None, shear=None):
 
     With friction and shear given, the runs `simulate <pose> <size> <friction> <shear>` left.
     """
-    suffix = f"-mu{float(friction)}-g{float(shear)}" if friction is not None else ""
+    suffix = (f"-mu{float(friction)}-g{float(shear)}" if friction is not None else "") + TRY
     sets = dict(np.load(ZONES))
     clo = zone_strain_table()
     faces = body_faces()
@@ -625,7 +630,7 @@ def report(friction=None, shear=None):
     failing = []
     for (pose, size, b), row in ours.items():
         diff = {z: (row[z] - clo[pose, size, b][z]) * 100 for z in ZONE_NAMES}
-        fitted = (pose, size, b) == ("standing", "M", "178-75")  # the stiffness fit
+        fitted = b == DEV_BODY  # the stiffness fit and the solver tuning
         worst = max(abs(d) for d in diff.values())
         if worst > 3 and not fitted:
             failing.append((pose, size, b, worst))
@@ -636,7 +641,7 @@ def report(friction=None, shear=None):
         mark = " (fitted)" if fitted else ""
         print(f"| {pose} | {size} | {b}{mark} | {cells} | {worst:.1f} | "
               f"{depth[pose, size, b][0]:.1f} / {depth[pose, size, b][1]:.1f} |")  # fmt: skip
-    held_out = 35
+    held_out = 27
     print(
         f"\nheld-out cases within ±3 points in every zone: {held_out - len(failing)} of {held_out}"
     )
@@ -656,6 +661,25 @@ def report(friction=None, shear=None):
         print(
             f"{pose} {size}: {frames} frames ({frames / 30:.1f} s), {seconds:.0f} s, 9 in parallel"
         )
+
+
+def dev():
+    """The development body's nine cases, ours − CLO per zone; never looks at the other bodies."""
+    sets = dict(np.load(ZONES))
+    clo = zone_strain_table()
+    diffs, within = [], 0
+    for pose in POSES:
+        for size in ("S", "M", "L"):
+            data = np.load(OURS / f"{pose}-{size}{TRY}.npz")
+            ours = zone_strains(jersey(size), data[DEV_BODY], sets)
+            diff = {z: (ours[z] - clo[pose, size, DEV_BODY][z]) * 100 for z in ZONE_NAMES}
+            diffs += list(diff.values())
+            worst = max(abs(d) for d in diff.values())
+            within += worst <= 3
+            print(f"{pose:8} {size}: " + " ".join(f"{z} {diff[z]:+5.1f}" for z in ZONE_NAMES)
+                  + f" | worst {worst:4.1f}")  # fmt: skip
+    rms = float(np.sqrt(np.mean(np.square(diffs))))
+    print(f"{DEV_BODY}{TRY}: within ±3 points {within} of 9, rms {rms:.2f} points")
 
 
 RENDERS = Path(__file__).parents[1] / "docs" / "cloth-sim-spike"  # renders may be committed
@@ -789,6 +813,19 @@ def pressure():
           m["chest"] > large["chest"])  # fmt: skip
 
 
+def apply_try():
+    """SPIKE_TRY="NAME=value,…" overrides solver or script constants; returns the file suffix."""
+    spec = os.environ.get("SPIKE_TRY", "")
+    for item in filter(None, spec.split(",")):
+        name, value = item.split("=")
+        module = solver if hasattr(solver, name) else sys.modules[__name__]
+        setattr(module, name, float(value))
+    return f"-try-{spec}" if spec else ""
+
+
+TRY = apply_try()
+
+
 if __name__ == "__main__":
     commands = {
         "calibrate-uv": calibrate_uv,
@@ -801,6 +838,7 @@ if __name__ == "__main__":
         "fit": fit,
         "simulate": simulate,
         "report": report,
+        "dev": dev,
         "calibrate": calibrate,
         "render": render,
     }

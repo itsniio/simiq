@@ -18,10 +18,8 @@ SUBSTEPS_PER_S = 500
 ITERATIONS = 2
 DAMPING_PER_S = 2.0  # velocity decays by e^(−2·t)
 SHEAR_N_PER_M = 20.0  # membrane shear modulus, N/m per rad; not measured, a spike guess
-COMPRESSION_SCALE = (
-    0.1  # a knit buckles when pushed: compression resists at 10 % of the first slope
-)
-BENDING_N_M = 1e-6  # bending rigidity, the order of a light knit's; a spike guess
+COMPRESSION_SCALE = 1.0  # compression resists at the first slope; 0.1 left sleeve and back short
+BENDING_N_M = 1e-5  # bending rigidity; a spike guess, tuned on 178/75 (1e-6 before)
 COLLISION_MM = 4.6  # the garment keeps this far off the body: CLO's start drape, p1 4.58 mm
 FRICTION = 1.0  # fabric on skin, per-vertex default: at 0.3 the jersey rode up 87 mm in hoods
 CARRY_MM = 10.0  # cloth this close to the body moves with it before each substep is solved
