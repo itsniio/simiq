@@ -30,6 +30,11 @@ QUERY_MM = 15.0  # how far from the body a vertex is looked up: well past any co
 wp.config.quiet = True
 
 
+def kes_shear_n_per_m(g_cn_per_cm_deg):
+    """KES-FB1 shear rigidity G, cN/cm per degree, as the membrane shear modulus in N/m per rad."""
+    return g_cn_per_cm_deg * 0.01 / 0.01 * 180 / np.pi
+
+
 @dataclass
 class Cloth:
     faces: wp.array  # (m,) vec3i

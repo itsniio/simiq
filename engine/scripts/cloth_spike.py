@@ -495,10 +495,17 @@ def zone_strains(garment, positions, sets):
 # hem −1.81, sleeve opening −1.22, back length +0.41 points against CLO.
 FITTED_SCALES = (2.0, 4.0)  # (course, wale) × the stand-in fabric's tension
 FIT_GRID = (0.25, 0.5, 1.0, 2.0, 4.0)
+# Literature, not fitted (19 Oct; founders: no time to measure). Fabric on skin: static μ of a
+# single-jersey knit on the chest, 0.90 ± 0.19 (Temel et al., Tribol. Lett. 70 (2022) 23, CC BY
+# 4.0, 10 people; the highest of six sites, dorsal forearm 0.31 ± 0.07, cotton, dry skin).
+KNIT_FRICTION = 0.90
+KNIT_FRICTION_SD = 0.19
+# Shear: a stretch weft knit's KES-FB1 rigidity, 0.28–1.50 cN/cm/deg (US 6,561,230 B1, Asahi
+# Kasei 2003), its geometric mean 0.648 → 37.1 N/m per rad; the range is 16.0–85.9 N/m.
+KNIT_SHEAR_N_PER_M = solver.kes_shear_n_per_m((0.28 * 1.50) ** 0.5)
 # `calibrate` on 19 Oct over CALIBRATION_GRID, hoods and drops 178/75 M: friction 1.0 with shear
 # 40 N/m, 2.48 points rms (worst 3.75); 20 N/m 2.61, 80 N/m 3.03; friction 0.7 and 1.4 ≥ 5.90.
-KNIT_FRICTION = 1.0  # fabric on skin, until measured (report: "Measuring friction and shear")
-KNIT_SHEAR_N_PER_M = 40.0  # the knit's membrane shear modulus, until measured
+# Superseded by the literature values above; kept so the calibration can be repeated.
 CALIBRATION = [("hoods", "M", "178-75"), ("drops", "M", "178-75")]  # fitted body and size, posed
 CALIBRATION_GRID = {
     "friction": (0.5, 0.7, 1.0, 1.4),
@@ -589,15 +596,19 @@ def calibrate():
     print(f"best: friction {friction}, shear {shear} N/m (rms {rms:.2f}, worst {worst:.2f} points)")
 
 
-def report():
-    """Task 5.2: every case's zone strains, ours against CLO, size ranking, depth, timing."""
+def report(friction=None, shear=None):
+    """Task 5.2: every case's zone strains, ours against CLO, size ranking, depth, timing.
+
+    With friction and shear given, the runs `simulate <pose> <size> <friction> <shear>` left.
+    """
+    suffix = f"-mu{float(friction)}-g{float(shear)}" if friction is not None else ""
     sets = dict(np.load(ZONES))
     clo = zone_strain_table()
     faces = body_faces()
     ours, depth, wall = {}, {}, {}
     for pose in POSES:
         for size in ("S", "M", "L"):
-            data = np.load(OURS / f"{pose}-{size}.npz")
+            data = np.load(OURS / f"{pose}-{size}{suffix}.npz")
             wall[pose, size] = (float(data["wall_s"]), int(data["frames"]))
             garment = jersey(size)
             reference, drapes = case_garments(pose, size)
@@ -614,7 +625,7 @@ def report():
     failing = []
     for (pose, size, b), row in ours.items():
         diff = {z: (row[z] - clo[pose, size, b][z]) * 100 for z in ZONE_NAMES}
-        fitted = (pose, size, b) == ("standing", "M", "178-75") or (pose, size, b) in CALIBRATION
+        fitted = (pose, size, b) == ("standing", "M", "178-75")  # the stiffness fit
         worst = max(abs(d) for d in diff.values())
         if worst > 3 and not fitted:
             failing.append((pose, size, b, worst))
@@ -625,7 +636,7 @@ def report():
         mark = " (fitted)" if fitted else ""
         print(f"| {pose} | {size} | {b}{mark} | {cells} | {worst:.1f} | "
               f"{depth[pose, size, b][0]:.1f} / {depth[pose, size, b][1]:.1f} |")  # fmt: skip
-    held_out = 35 - len(CALIBRATION)
+    held_out = 35
     print(
         f"\nheld-out cases within ±3 points in every zone: {held_out - len(failing)} of {held_out}"
     )

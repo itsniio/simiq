@@ -331,3 +331,7 @@ G is measured without a shear tester from three strip tests on the existing rig.
     1/E₄₅ = ¼ · (1/E_c + 1/E_w + 1/G − 2ν_cw/E_c)   →   G = 1 / (4/E₄₅ − 1/E_c − 1/E_w + 2ν_cw/E_c)
 
 Example with the example knit's 400 and 600 N/m, a bias strip of 100 N/m and ν = 0.3: 4/100 − 1/400 − 1/600 + 0.6/400 = 0.04 − 0.0025 − 0.001667 + 0.0015 = 0.037333, G = 26.8 N/m. A KES-FB1 shear tester gives G in gf/cm/deg; × 56.19 makes N/m per radian (0.00981 N / 0.01 m / (π/180)).
+
+### Shear modulus from a KES-FB1 rigidity (`drape.py` `kes_shear_n_per_m`)
+
+KES-FB1 reports G as shear force per unit width per degree of shear angle, the same quantity as the membrane τ = G γ with γ in degrees. In cN/cm/deg: 1 cN/cm = 0.01 N / 0.01 m = 1 N/m, and per degree is 180/π per radian, so G [N/m per rad] = G [cN/cm/deg] × 57.2958 (in gf/cm/deg × 56.19, 1 gf = 0.981 cN). Test: 1 cN/cm/deg → 57.2958 N/m; the weft-knit range 0.28–1.50 cN/cm/deg (US 6,561,230 B1) has geometric mean √(0.28 × 1.50) = 0.648074, → 37.1319 N/m, which is `KNIT_SHEAR_N_PER_M`. KES measures under a 9.8 cN/cm pretension at up to ±8°, so for a loose knit it reads stiffer than the solver's unloaded small-angle modulus.

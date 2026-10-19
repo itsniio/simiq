@@ -5,7 +5,16 @@ import json
 import numpy as np
 import pytest
 
-from simiq_fit.drape import COLLISION_MM, FRICTION, body, cloth, move_body, positions_mm, run
+from simiq_fit.drape import (
+    COLLISION_MM,
+    FRICTION,
+    body,
+    cloth,
+    kes_shear_n_per_m,
+    move_body,
+    positions_mm,
+    run,
+)
 from simiq_fit.garment import DATA, Fabric
 from simiq_fit.surface_strain import strains
 
@@ -238,3 +247,10 @@ def test_shear_stiffness_is_the_membrane_shear_modulus():
     # G = 20 N/m → 0.1 rad → 1.0 mm; G = 40 N/m → 0.5 mm.
     assert sheared(20.0) == pytest.approx(1.0, rel=0.1)
     assert sheared(40.0) == pytest.approx(0.5, rel=0.1)
+
+
+def test_a_kes_shear_rigidity_becomes_the_membrane_shear_modulus():
+    # 1 cN/cm per degree = 0.01 N / 0.01 m per degree = 1 N/m per degree = 180/π = 57.2958 N/m
+    assert kes_shear_n_per_m(1.0) == pytest.approx(57.2958, abs=1e-4)
+    # the weft-knit range 0.28–1.50 cN/cm/deg, its geometric mean √0.42 = 0.648074 → 37.1319 N/m
+    assert kes_shear_n_per_m((0.28 * 1.50) ** 0.5) == pytest.approx(37.1319, abs=1e-4)

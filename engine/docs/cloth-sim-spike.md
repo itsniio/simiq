@@ -105,13 +105,13 @@ The sleeves still ride 7–13 mm up the arm on the start body and the pocket edg
 
 ## Comparison with CLO and recommendation (tasks 5.1, 5.2), 18–19 Oct 2026
 
-**Recommendation: no-go as specified; standing passes, the poses wait for two measured numbers.** Against the acceptance scenarios: sizes rank like CLO's in chest strain on all 12 body × pose pairs (pass); no case goes deeper into the body than CLO's drape of it (36 of 36, ruling 7, pass); one garment on one body takes 55.2–55.4 s (pass); every zone within ±3 points of CLO on only **11 of 33** held-out cases (fail). In `standing` all 11 held-out cases are within 3.3 points (10 within 3). The poses fail mainly in the hem zone (+5 to +30 points, size S worst) and on 176/88's underarm. They depend sharply on fabric-on-skin friction and in-plane shear, which are not measured; the last proposal below says how to measure them in a day, after which one honest run decides.
+**Recommendation: no-go as specified; standing passes, the poses do not.** Final run, 19 Oct, with fabric-on-skin friction and shear taken from the literature and nothing calibrated on any case but the stiffness fit (below, "Literature values, nothing fitted"): sizes rank like CLO's in chest strain on all 12 body × pose pairs (pass); no case goes deeper into the body than CLO's drape of it (36 of 36, ruling 7, pass); one garment on one body takes 55.2–55.4 s (pass); every zone within ±3 points of CLO on only **12 of 35** held-out cases (fail). `standing`: 10 of 11 (S 176/88 at 3.2). `hoods`: 2 of 12. `drops`: 0 of 12. Across the published spread of the friction coefficient (±1 SD) the count is 11–13 of 35. The founders have no time to measure friction and shear, so the measured run proposed below will not happen inside the time box.
 
-**How it was run.** `simulate <pose> <size>` drives our drape through the very point cache that drove CLO's run of that pose (and, for `hoods` and `drops`, first through the 178/75 A-pose → hoods animation that brought CLO's garment there: those caches start in the pose, 672 mm from the starting drape's body) and saves our garment at CLO's case frames; nine runs side by side, 2.4–4.5 min each. `report` scores both with the same zone metric (group 3) and checks penetration with the winding-number test. Fabric: the stand-in tricot × the fitted scales; friction and shear as calibrated below.
+**How it was run.** `simulate <pose> <size>` drives our drape through the very point cache that drove CLO's run of that pose (and, for `hoods` and `drops`, first through the 178/75 A-pose → hoods animation that brought CLO's garment there: those caches start in the pose, 672 mm from the starting drape's body) and saves our garment at CLO's case frames; nine runs side by side, 2.4–4.5 min each. `report` scores both with the same zone metric (group 3) and checks penetration with the winding-number test. Fabric: the stand-in tricot × the fitted scales; friction and shear from the literature (final run) or as calibrated below (the run before it).
 
 **5.1 Fit.** Course and wale tension scales on a 5 × 5 grid (×0.25 … ×4), the case settling 3 s on 178/75 `standing` from CLO's starting drape: best course ×2, wale ×4, 1.35 points rms. Per zone, ours − CLO: chest −1.34, waist +1.52, hem −1.81, sleeve opening −1.22, back length +0.41 points. Four zones miss the 1 point, so 5.1 is not met. Mostly the course/wale ratio matters (×1/×4: 1.37 rms). Through its whole sequence the same case ends within 1.6 points in every zone.
 
-**Calibration of friction and shear (my proposal, not in the spec; founders to approve).** The fit case cannot see either number (shear 5–160 N/m moves it by 0.07 points rms), so they were calibrated on the fitted body and size in the two poses, 178/75 M `hoods` and `drops`, which are therefore no longer held out (33 remain). `calibrate` over friction 0.5, 0.7, 1.0, 1.4 × shear 20, 40, 80 N/m, rms over the ten zones of the two cases:
+**Calibration of friction and shear (superseded by the literature values; kept as the record).** The fit case cannot see either number (shear 5–160 N/m moves it by 0.07 points rms), so they were calibrated on the fitted body and size in the two poses, 178/75 M `hoods` and `drops`, which are therefore no longer held out (33 remain). `calibrate` over friction 0.5, 0.7, 1.0, 1.4 × shear 20, 40, 80 N/m, rms over the ten zones of the two cases:
 
 | friction \ shear | 20 N/m | 40 N/m | 80 N/m |
 |---|---|---|---|
@@ -122,7 +122,7 @@ The sleeves still ride 7–13 mm up the arm on the start body and the pocket edg
 
 Friction 1.0 is a sharp optimum on both poses and shear a weak one; 1.0 and 40 N/m are now `KNIT_FRICTION` and `KNIT_SHEAR_N_PER_M`. Neither is a measured value.
 
-**5.2 All cases**, ours / CLO (ours − CLO) in % course strain (wale for back length), worst zone in points, and the deepest vertex (mm off the skin, negative inside) of ours and CLO's; "(fitted)" marks the stiffness fit case and the two calibration cases:
+**5.2 All cases, calibrated run (superseded by the literature run below)**, ours / CLO (ours − CLO) in % course strain (wale for back length), worst zone in points, and the deepest vertex (mm off the skin, negative inside) of ours and CLO's; "(fitted)" marks the stiffness fit case and the two calibration cases:
 
 | pose | size | body | chest | waist | hem | sleeve_opening | back_length | worst | deepest ours / CLO mm |
 |---|---|---|---|---|---|---|---|---|---|
@@ -167,7 +167,71 @@ Summary: held-out cases within ±3 points in every zone 11 of 33: all of `standi
 
 Renders (course strain, CLO above, ours below; blue −30 %, white 0, red +30 %): [standing M 192/82](cloth-sim-spike/standing-M-192-82.png) (agrees), [hoods M 176/88](cloth-sim-spike/hoods-M-176-88.png), [hoods S 192/82](cloth-sim-spike/hoods-S-192-82.png) and [drops M 180/64](cloth-sim-spike/drops-M-180-64.png) (do not).
 
-### What still fails
+### Literature values, nothing fitted (19 Oct, final)
+
+The founders cannot measure friction and shear, so both now come from published values, chosen before this run. The 19 Oct calibration (1.0, 40 N/m) is set aside. 178/75 M `hoods` and `drops` count as held out again, which makes 35 held-out cases.
+
+- **Friction μ = 0.90 ± 0.19:** the static coefficient of a single-jersey knit on the chest, measured on 10 people (Temel, Johnson, Lloyd, *Tribology Letters* 70 (2022) 23, CC BY 4.0). It is the only torso site the paper gives as a number. The paper ranks the others chest > torso > lower back > upper back > volar forearm (> dorsal forearm 0.31 ± 0.07). For a woven cotton/polyester on the forearm, Gerhardt et al., *J R Soc Interface* 5 (2008) 1317, report a kinetic 0.42 (natural skin) and 0.91 (wet). The knit there was cotton on dry skin. Sweat and a polyamide/elastane face would move the value, by an amount not known.
+- **Shear G = 37.1 N/m:** the geometric mean of the KES-FB1 shear rigidity claimed for a stretch weft knit, 0.28–1.50 cN/cm/deg (US 6,561,230 B1, Asahi Kasei 2003), converted by `kes_shear_n_per_m` (formulas.md). The range is 16.0–85.9 N/m; the calibration grid had already shown shear to be weak inside it (20–80 N/m: 2.61–3.03 points rms).
+- **The gripper's friction stays 1.5**, a guess: no published silicone-on-skin value was found for it. The stiffness scales (course ×2, wale ×4, 5.1) stay fitted on 178/75 `standing` M, as the spec has it.
+
+The friction was also run at ±1 SD, `simulate <pose> <size> 0.71 37.131909013743595` and `report 0.71 37.131909013743595` (and the same at 1.09). Held-out cases within ±3 points by pose, and the median worst zone in points:
+
+| μ | standing | hoods | drops | all 35 | median worst: standing · hoods · drops |
+|---|---|---|---|---|---|
+| 0.71 | 11 of 11 | 2 of 12 | 0 of 12 | 13 | 1.6 · 7.5 · 5.7 |
+| **0.90** | 10 of 11 | 2 of 12 | 0 of 12 | **12** | 1.7 · 7.9 · 6.0 |
+| 1.09 | 10 of 11 | 1 of 12 | 0 of 12 | 11 | 1.8 · 8.1 · 22.0 |
+| 1.0, 40 N/m (calibrated, 19 Oct) | 10 of 11 | 1 of 11 | 0 of 11 | 11 of 33 | — |
+
+What the literature run changes against the calibrated one:
+
+- **The `drops` hem** now agrees: within ±4 points on 10 of 12 cases, against +5 to +30 at μ 1.0. Between 0.9 and 1.0 the hem goes from sliding up the back with CLO's to staying on the buttocks: the threshold of the 19 Oct experiments lies inside the published spread. At 1.09 the `drops` hem is +13.8 points on average.
+- **`drops` now fails on back length** instead: ours −3.0 to −9.2 points (wale) in 10 of 12 cases, and the waist −2 to −5 in 9 of 12. 176/88's sleeve opening is still 23–35 points off in every size (CLO pinches the underarm, group 3).
+- **The `hoods` hem splits by size:** S is +6.6 to +11.3 points (ours stretches over the flexed hips where CLO's slides); L is −5.5 to −9.3 on three bodies (ours rides up where CLO's holds) and +4.8 on 180/64. M is within 3 points on 180/64 and 192/82; 178/75 is at 3.2. 176/88's chest is −5 to −8 and its sleeve opening −4 to −10 in every size, as before.
+
+All 36 cases at μ 0.90, G 37.1 N/m, ours / CLO (ours − CLO) in % course strain (wale for back length); "(fitted)" is the stiffness fit case:
+
+| pose | size | body | chest | waist | hem | sleeve_opening | back_length | worst | deepest ours / CLO mm |
+|---|---|---|---|---|---|---|---|---|---|
+| standing | S | 178-75 | 11.0 / 12.0 (-1.0) | 18.2 / 17.2 (+1.1) | 30.2 / 32.0 (-1.8) | -1.6 / 0.4 (-1.9) | -1.0 / -1.1 (+0.1) | 1.9 | 4.1 / 3.1 |
+| standing | S | 180-64 | 8.8 / 9.3 (-0.5) | 5.7 / 3.9 (+1.8) | 26.6 / 26.8 (-0.3) | -0.0 / 1.3 (-1.4) | -0.3 / -0.2 (-0.0) | 1.8 | 4.6 / 3.9 |
+| standing | S | 176-88 | 15.8 / 17.4 (-1.6) | 33.1 / 33.0 (+0.1) | 35.2 / 38.3 (-3.2) | -3.2 / -1.7 (-1.5) | -0.8 / -1.0 (+0.2) | 3.2 | 1.0 / -3.1 |
+| standing | S | 192-82 | 14.5 / 15.3 (-0.8) | 17.0 / 15.7 (+1.3) | 34.6 / 35.8 (-1.3) | -0.0 / 1.7 (-1.7) | 2.6 / 1.9 (+0.6) | 1.7 | 4.6 / 4.0 |
+| standing | M | 178-75 (fitted) | 8.1 / 8.6 (-0.5) | 13.0 / 11.9 (+1.1) | 24.6 / 26.0 (-1.4) | -1.5 / 0.3 (-1.7) | -0.8 / -0.7 (-0.1) | 1.7 | 4.5 / 3.6 |
+| standing | M | 180-64 | 5.6 / 6.2 (-0.6) | 2.3 / 1.4 (+0.9) | 20.4 / 20.7 (-0.3) | -0.3 / 1.1 (-1.4) | -0.4 / -0.1 (-0.3) | 1.4 | 4.6 / 4.1 |
+| standing | M | 176-88 | 12.5 / 13.8 (-1.4) | 26.8 / 26.9 (-0.1) | 29.4 / 31.8 (-2.5) | -2.8 / -1.8 (-1.0) | -0.8 / -0.5 (-0.3) | 2.5 | 1.1 / -0.4 |
+| standing | M | 192-82 | 11.3 / 11.8 (-0.4) | 12.1 / 10.8 (+1.2) | 28.7 / 29.6 (-0.9) | -0.3 / 1.1 (-1.4) | 2.0 / 2.2 (-0.1) | 1.4 | 4.6 / 3.9 |
+| standing | L | 178-75 | 5.5 / 5.4 (+0.2) | 8.3 / 7.1 (+1.2) | 19.6 / 20.8 (-1.2) | -1.3 / 0.1 (-1.4) | -0.6 / -0.6 (+0.0) | 1.4 | 4.4 / 3.4 |
+| standing | L | 180-64 | 3.5 / 3.5 (-0.0) | 1.0 / 0.5 (+0.5) | 14.5 / 15.4 (-0.8) | -0.6 / 0.8 (-1.3) | -0.2 / -0.1 (-0.1) | 1.3 | 4.6 / 4.0 |
+| standing | L | 176-88 | 9.3 / 9.6 (-0.3) | 21.1 / 21.2 (-0.1) | 24.6 / 26.8 (-2.2) | -2.8 / -2.4 (-0.3) | -0.8 / -0.7 (-0.1) | 2.2 | 1.4 / -2.9 |
+| standing | L | 192-82 | 8.7 / 8.2 (+0.5) | 7.8 / 6.2 (+1.7) | 23.2 / 24.0 (-0.7) | -0.6 / 1.0 (-1.6) | 1.5 / 1.6 (-0.1) | 1.7 | 4.6 / 4.0 |
+| hoods | S | 178-75 | 6.9 / 8.0 (-1.1) | 18.7 / 20.2 (-1.5) | 38.4 / 28.3 (+10.1) | -4.2 / -0.9 (-3.3) | 0.3 / -1.3 (+1.6) | 10.1 | 0.6 / -4.6 |
+| hoods | S | 180-64 | 6.8 / 5.5 (+1.3) | 6.3 / 6.4 (-0.0) | 31.6 / 22.9 (+8.8) | -0.1 / 1.1 (-1.1) | 1.1 / -0.8 (+1.9) | 8.8 | 0.7 / -3.8 |
+| hoods | S | 176-88 | 11.3 / 18.9 (-7.6) | 32.7 / 34.0 (-1.2) | 49.1 / 42.5 (+6.6) | -5.4 / 3.7 (-9.2) | 2.6 / -0.7 (+3.2) | 9.2 | 1.1 / -5.6 |
+| hoods | S | 192-82 | 11.4 / 9.9 (+1.4) | 17.0 / 17.2 (-0.3) | 41.5 / 30.3 (+11.3) | -0.0 / 1.4 (-1.5) | 3.4 / -1.0 (+4.4) | 11.3 | 1.0 / -4.6 |
+| hoods | M | 178-75 | 4.3 / 5.7 (-1.4) | 14.0 / 15.8 (-1.8) | 31.6 / 30.2 (+1.4) | -3.4 / -0.1 (-3.2) | -0.5 / 0.3 (-0.8) | 3.2 | 1.1 / -4.7 |
+| hoods | M | 180-64 | 4.0 / 4.6 (-0.6) | 3.2 / 3.9 (-0.7) | 25.5 / 23.9 (+1.6) | 0.4 / 1.3 (-0.9) | 0.2 / 0.7 (-0.5) | 1.6 | 0.8 / -6.4 |
+| hoods | M | 176-88 | 8.7 / 16.0 (-7.3) | 27.2 / 29.9 (-2.7) | 43.5 / 41.9 (+1.6) | -5.3 / 5.0 (-10.3) | 1.5 / 2.5 (-1.0) | 10.3 | 1.0 / -6.2 |
+| hoods | M | 192-82 | 8.2 / 9.0 (-0.8) | 12.0 / 13.6 (-1.5) | 35.2 / 32.3 (+2.9) | 0.6 / 2.3 (-1.7) | 2.3 / 3.5 (-1.1) | 2.9 | 0.5 / -5.9 |
+| hoods | L | 178-75 | 1.7 / 2.7 (-0.9) | 12.8 / 11.4 (+1.4) | 11.1 / 20.3 (-9.3) | -3.4 / -1.5 (-1.9) | -6.5 / -0.8 (-5.7) | 9.3 | 1.2 / -4.7 |
+| hoods | L | 180-64 | 1.3 / 1.1 (+0.2) | 6.3 / 2.2 (+4.1) | 18.3 / 13.5 (+4.8) | 0.2 / 0.4 (-0.2) | -1.0 / -0.3 (-0.7) | 4.8 | 2.0 / -3.1 |
+| hoods | L | 176-88 | 6.1 / 11.5 (-5.4) | 23.8 / 23.3 (+0.5) | 27.8 / 33.3 (-5.5) | -5.2 / -0.9 (-4.3) | -4.8 / -0.5 (-4.3) | 5.5 | 1.3 / -5.9 |
+| hoods | L | 192-82 | 5.6 / 3.9 (+1.7) | 12.0 / 8.8 (+3.2) | 15.1 / 22.1 (-7.0) | 0.5 / 0.5 (+0.0) | -3.6 / -0.4 (-3.3) | 7.0 | 3.8 / -2.9 |
+| drops | S | 178-75 | 6.3 / 8.8 (-2.5) | 27.5 / 29.7 (-2.2) | 24.4 / 23.5 (+0.9) | -4.2 / 1.8 (-6.0) | -8.3 / -1.9 (-6.4) | 6.4 | -0.1 / -11.7 |
+| drops | S | 180-64 | 6.3 / 6.6 (-0.3) | 21.3 / 25.8 (-4.5) | 18.7 / 14.7 (+4.0) | -0.1 / -1.4 (+1.3) | -4.8 / -1.4 (-3.4) | 4.5 | 0.1 / -8.7 |
+| drops | S | 176-88 | 10.9 / 11.5 (-0.7) | 37.8 / 39.5 (-1.7) | 36.0 / 35.2 (+0.8) | -5.7 / 29.0 (-34.7) | -11.7 / -2.5 (-9.2) | 34.7 | 0.6 / -14.7 |
+| drops | S | 192-82 | 10.7 / 11.2 (-0.5) | 27.7 / 32.2 (-4.5) | 23.6 / 22.5 (+1.1) | -0.0 / -0.2 (+0.2) | -6.3 / -1.8 (-4.5) | 4.5 | -0.6 / -11.6 |
+| drops | M | 178-75 | 3.7 / 6.9 (-3.2) | 21.1 / 23.4 (-2.3) | 17.8 / 18.9 (-1.1) | -3.6 / 0.0 (-3.6) | -8.4 / -1.5 (-6.9) | 6.9 | 0.6 / -12.3 |
+| drops | M | 180-64 | 3.5 / 5.1 (-1.5) | 14.7 / 19.6 (-4.9) | 20.1 / 12.2 (+7.9) | 0.3 / -2.7 (+3.0) | -1.3 / -1.2 (-0.1) | 7.9 | -0.4 / -12.1 |
+| drops | M | 176-88 | 7.9 / 9.4 (-1.5) | 32.8 / 32.7 (+0.1) | 31.4 / 31.2 (+0.2) | -5.4 / 17.4 (-22.8) | -8.7 / -2.2 (-6.6) | 22.8 | 1.0 / -11.6 |
+| drops | M | 192-82 | 7.5 / 9.4 (-1.9) | 22.0 / 25.9 (-3.9) | 18.6 / 17.8 (+0.7) | 0.3 / -1.6 (+1.9) | -6.0 / -1.5 (-4.5) | 4.5 | -0.0 / -14.1 |
+| drops | L | 178-75 | 1.6 / 4.4 (-2.8) | 17.9 / 20.3 (-2.4) | 12.7 / 13.0 (-0.2) | -3.0 / 0.9 (-3.9) | -6.5 / -1.4 (-5.2) | 5.2 | 0.2 / -14.4 |
+| drops | L | 180-64 | 0.9 / 2.7 (-1.8) | 13.0 / 16.3 (-3.3) | 13.8 / 8.1 (+5.6) | 0.1 / -1.2 (+1.3) | -3.5 / -0.7 (-2.8) | 5.6 | -0.3 / -12.1 |
+| drops | L | 176-88 | 5.8 / 7.2 (-1.4) | 28.7 / 29.1 (-0.4) | 26.6 / 23.1 (+3.5) | -5.6 / 26.5 (-32.1) | -6.0 / -2.1 (-4.0) | 32.1 | 1.2 / -13.8 |
+| drops | L | 192-82 | 5.0 / 6.5 (-1.4) | 18.2 / 22.5 (-4.3) | 16.3 / 13.0 (+3.3) | 0.5 / -0.2 (+0.6) | -3.1 / -0.1 (-3.0) | 4.3 | 0.3 / -17.9 |
+
+### What failed in the calibrated run (μ 1.0, 40 N/m)
 
 - **The hem zone in the poses**: +3 to +13 points in `hoods` (9 of 12 cases, S worst) and +5 to +30 in `drops` (11 of 12), although in `hoods` the hem edge sits at CLO's height. Over the flexed hips our fabric stretches with the skin under it, where CLO's slides; whether the fabric holds or slides there is set by friction, the parameter the poses are most sensitive to. In `drops` our hem edge also ends 18–57 mm lower than CLO's: CLO's jersey rides further up the back.
 - **176/88's underarm**: chest −5 to −7 and sleeve opening −4 to −9 points in `hoods`; in `drops` CLO pinches the heavy underarm (sleeve opening +17 to +29 %, group 3) and ours does not, 22–34 points.
@@ -190,7 +254,7 @@ Before the calibration, the posed errors were chased with four experiments, each
 - **Not carrying cloth on the legs** made `drops` worse: the thighs were holding the hem up, not dragging it down. Dropped.
 - None of these was adopted on its own: each was chosen by looking at held-out cases. That is what led to the calibration above, on the fitted body and size only.
 
-### Measuring friction and shear (proposal)
+### Measuring friction and shear (proposal; not done: no time, 19 Oct)
 
 The two numbers the poses hang on can be measured in a day with the strip-test rig and kitchen tools; the measured values then go into `KNIT_FRICTION`, `GRIPPER_FRICTION` and `KNIT_SHEAR_N_PER_M` with no fitting, and the 36 cases are run once. That is the honest test of the solver.
 
