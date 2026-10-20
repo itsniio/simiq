@@ -32,24 +32,24 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
 const css = getComputedStyle(document.documentElement);
 const token = (name) => new THREE.Color(css.getPropertyValue(name).trim());
+// ?m= model, ?az= degrees round the figure, ?d= ?y= ?ty= camera distance, height and aim (render.py).
 const qs = new URLSearchParams(location.search);
 const num = (k, d) => parseFloat(qs.get(k) ?? d);
 
 // The canvas is transparent over the page background, so tone mapping cannot shift its colour.
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-renderer.setClearColor(0x000000, 0);
+renderer.setClearAlpha(0);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.NoToneMapping;
-renderer.toneMappingExposure = num("exp", 1.0);
+renderer.toneMapping = THREE.NoToneMapping;  // matched to the Figma frame's grey levels
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-scene.environmentIntensity = num("env", 0.1);
+scene.environmentIntensity = 0.1;  // a faint sheen only
 
 const camera = new THREE.PerspectiveCamera(20, innerWidth / innerHeight, 0.1, 50);
 const az = (num("az", 0) * Math.PI) / 180, dist = num("d", 6.4);
@@ -62,21 +62,17 @@ controls.minPolarAngle = controls.maxPolarAngle = controls.getPolarAngle();
 controls.enableDamping = true;
 
 // Studio light rides with the camera, so every side of the turntable is lit like the Figma frame:
-// a soft key from the front left and above, a weak fill, a rim from behind.
+// a key from above and slightly left, a weak fill, a faint rim from behind.
 scene.add(camera);
-const key = new THREE.DirectionalLight(0xffffff, num("key", 1.2));
-key.position.set(-1.5, 3.5, 3.0);
-camera.add(key);
-const fill = new THREE.DirectionalLight(0xffffff, num("fill", 0.3));
-fill.position.set(3.0, 0.2, 2.6);
-camera.add(fill);
-const rim = new THREE.DirectionalLight(0xffffff, num("rim", 0.1));
-rim.position.set(1.0, 2.0, -4.0);
-camera.add(rim);
+for (const [intensity, x, y, z] of [[2.2, -0.6, 4.5, 2.2], [0.2, 3.0, 0.2, 2.6], [0.1, 1.0, 2.0, -4.0]]) {
+  const light = new THREE.DirectionalLight("white", intensity);
+  light.position.set(x, y, z);
+  camera.add(light);
+}
 // Soft studio ambience: a white sky over a warm grey floor.
-scene.add(new THREE.HemisphereLight(0xffffff, 0xb3afa6, num("hemi", 2.7)));
+scene.add(new THREE.HemisphereLight("white", token("--stage-floor-bounce"), 1.9));
 // The contact shadow: an overhead light whose shadow camera sees only the feet.
-const overhead = new THREE.DirectionalLight(0xffffff, 0.0001);
+const overhead = new THREE.DirectionalLight("white", 0.0001);
 overhead.position.set(0.0, 6.0, 0.3);
 overhead.castShadow = true;
 overhead.shadow.mapSize.set(1024, 1024);
@@ -86,7 +82,7 @@ Object.assign(overhead.shadow.camera, { left: -0.6, right: 0.6, top: 0.6, bottom
 scene.add(overhead);
 
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(6, 6),
-  new THREE.ShadowMaterial({ color: token("--mannequin-shadow"), opacity: num("shadow", 0.7) }));
+  new THREE.ShadowMaterial({ color: token("--mannequin-shadow"), opacity: 0.7 }));
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
@@ -109,7 +105,7 @@ scene.add(haloMesh);
 new GLTFLoader().load(qs.get("m") || "mannequin.glb", (gltf) => {
   gltf.scene.traverse((o) => {
     if (!o.isMesh) return;
-    o.material = new THREE.MeshStandardMaterial({ color: token("--mannequin-skin"), roughness: num("rough", 0.9), metalness: 0 });
+    o.material = new THREE.MeshStandardMaterial({ color: token("--mannequin-skin"), roughness: 0.9, metalness: 0 });
     o.castShadow = true;
   });
   scene.add(gltf.scene);
@@ -119,8 +115,8 @@ new GLTFLoader().load(qs.get("m") || "mannequin.glb", (gltf) => {
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const ao = new GTAOPass(scene, camera, innerWidth, innerHeight);
-ao.updateGtaoMaterial({ radius: num("aor", 0.12), distanceExponent: 1.4, thickness: 1.0, scale: 1.0 });
-ao.blendIntensity = num("ao", 0.9);
+ao.updateGtaoMaterial({ radius: 0.08, distanceExponent: 1.4, thickness: 1.0, scale: 1.0 });
+ao.blendIntensity = 0.9;
 composer.addPass(ao);
 composer.addPass(new OutputPass());
 

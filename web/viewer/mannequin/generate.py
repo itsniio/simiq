@@ -35,19 +35,21 @@ NECK = (0.074, 0.068)  # neck half-width and half-depth, metres
 PHENOTYPE = {"gender": 0.0, "age": 0.78, "muscle": 1.0, "height": 1.0,
              "proportions": 1.0}
 LOCAL = {
-    "torso-vshape-incr": 1.0, "measure-shoulder-dist-incr": 1.0, "torso-muscle-pectoral-incr": 0.7,
-    "torso-muscle-dorsi-incr": 0.15, "stomach-tone-incr": 1.0, "measure-waist-circ-incr": -0.4,
-    "bulge-incr": -0.2,
-    "l-upperarm-shoulder-muscle-incr": 1.0, "r-upperarm-shoulder-muscle-incr": 1.0,
-    "l-upperarm-muscle-incr": 1.0, "r-upperarm-muscle-incr": 1.0,
-    "l-lowerarm-muscle-incr": 0.6, "r-lowerarm-muscle-incr": 0.6,
+    "torso-vshape-incr": 0.5, "measure-shoulder-dist-incr": 1.6, "torso-muscle-pectoral-incr": 0.4,
+    "torso-muscle-dorsi-incr": 0.5, "stomach-tone-incr": 1.0, "measure-waist-circ-incr": -0.5,
+    "bulge-incr": -0.5,
+    "l-upperarm-shoulder-muscle-incr": 1.5, "r-upperarm-shoulder-muscle-incr": 1.5,
+    "l-upperarm-muscle-incr": 1.4, "r-upperarm-muscle-incr": 1.4,
+    "l-lowerarm-muscle-incr": 0.9, "r-lowerarm-muscle-incr": 0.9,
     "l-upperleg-muscle-incr": 1.0, "r-upperleg-muscle-incr": 1.0,
-    "l-lowerleg-muscle-incr": 0.6, "r-lowerleg-muscle-incr": 0.6,
+    "l-lowerleg-muscle-incr": 1.0, "r-lowerleg-muscle-incr": 1.0,
+    "upperlegs-height-incr": -0.6, "lowerlegs-height-incr": -0.3,
     "measure-upperarm-length-incr": 0.5, "measure-lowerarm-length-incr": 0.5,
-    "measure-neck-height-incr": 0.4, "measure-neck-circ-incr": 0.8,
+    "measure-neck-height-incr": 1.0, "measure-neck-circ-incr": 0.8,
 }
 # Pose, degrees about Anny's axes (+X body left, -Y forward, +Z up).
-POSE = {"upperarm01.L": (0, 22, 0), "upperarm01.R": (0, -22, 0),
+POSE = {"shoulder01.L": (0, 3, 0), "shoulder01.R": (0, -3, 0),
+        "upperarm01.L": (0, 21, 0), "upperarm01.R": (0, -21, 0),
         "lowerarm01.L": (36, 0, 0), "lowerarm01.R": (36, 0, 0),
         "wrist.L": (10, 0, 20), "wrist.R": (10, 0, -20),
         "upperleg01.L": (0, 3, 0), "upperleg01.R": (0, -3, 0)}
@@ -167,17 +169,19 @@ def head_and_neck(P, D, J):
     neck_base, head_base = J["neck01"], J["head"]
     # The egg: a slightly forward-tilted ellipsoid whose lower half narrows to the chin.
     centre = head_base + np.array([0.0, -0.022, 0.07])
-    r = np.array([0.082, 0.1, 0.12])
+    r = np.array([0.084, 0.1, 0.133])
     q = P - centre
     tilt = np.radians(14)  # chin forward
     c, s = np.cos(tilt), np.sin(tilt)
     y = q[:, 1] * c + q[:, 2] * s
     z = -q[:, 1] * s + q[:, 2] * c
     lower = np.clip(-z / r[2], 0, 1)
-    taper = 1 - 0.20 * lower ** 1.4
+    taper = 1 - 0.27 * lower ** 1.4
     back = 1 + 0.025 * (1 + np.tanh(2 * y / r[1]))  # fuller crown at the back
     rz = r[2] * (0.88 + 0.12 * (1 - np.tanh(4 * z / r[2])) / 2)  # a rounder crown, a longer chin
-    k = np.sqrt((q[:, 0] / (r[0] * taper)) ** 2 + (y / (r[1] * taper * back)) ** 2 + (z / rz) ** 2)
+    e = 2.3  # a superellipsoid: fuller than an ellipsoid, like a mannequin's head
+    k = (np.abs(q[:, 0] / (r[0] * taper)) ** e + np.abs(y / (r[1] * taper * back)) ** e
+         + np.abs(z / rz) ** e) ** (1 / e)
     egg = (k - 1) * r[0] * 0.95
     # The body without its head: a plane under the chin, rising towards the nape.
     # It climbs steeply sideways past the neck, so the trapezius and shoulders keep their shape.
@@ -190,8 +194,8 @@ def head_and_neck(P, D, J):
     a = (neck_base + [0, -0.016, -0.08]) * squash
     b = (centre + [0, 0.004, -0.01]) * squash
     d, t = segment_distance(P * squash, a, b)
-    neck = d - NECK[1] * (1 - 0.22 * t)
-    return smin(body, smin(neck, egg, 0.04), 0.07)
+    neck = d - NECK[1] * (1 - 0.32 * t)
+    return smin(body, smin(neck, egg, 0.025), 0.07)
 
 
 class Surface:
@@ -269,25 +273,31 @@ def sculpt(P, N, J, S):
     F, B = S.front, S.back
 
     # Chest: pectoral mass with a crisp lower border, a sternal furrow, collarbones.
-    h += front * blob(P, F(0.075, 1.465), [1, 0, 0.25], (0.085, 0.06), 0.006)
-    h += front * groove(P, polyline([F(0.0, 1.405), F(0.06, 1.39), F(0.12, 1.405), F(0.16, 1.45)]),
-                        0.010, 0.0045)
+    h += front * blob(P, F(0.075, 1.465), [1, 0, 0.25], (0.095, 0.065), 0.012)
+    h += front * blob(P, F(0.098, 1.432), [0, 0, 1], (0.012, 0.012), 0.0015)  # nipple
+    pec_border = [F(0.0, 1.405), F(0.06, 1.39), F(0.12, 1.408), F(0.145, 1.428)]
+    h += front * groove(P, polyline(pec_border), 0.013, 0.002)
     h += front * groove(P, polyline([F(0.0, 1.40), F(0.0, 1.54)]), 0.011, 0.003)
     h += front * groove(P, polyline([F(0.03, 1.535), F(0.10, 1.55), F(0.17, 1.565)]), 0.012, 0.002)
     # Abdomen: rectus blocks between the linea alba and the tendinous lines; obliques; the V lines.
     h += front * groove(P, polyline([F(0.0, 1.385), F(0.0, 1.10)]), 0.009, 0.002)
     for z, bow in ((1.325, 0.012), (1.25, 0.010), (1.175, 0.006)):
         h += front * groove(P, polyline([F(0.0, z), F(0.04, z + bow * 0.5), F(0.08, z + bow)]),
-                            0.010, 0.0012)
-    for z0, z1 in ((1.33, 1.385), (1.255, 1.325), (1.18, 1.25), (1.03, 1.175)):
+                            0.010, 0.002)
+    for z0, z1 in ((1.33, 1.385), (1.255, 1.325), (1.18, 1.25)):
         zc = (z0 + z1) / 2
-        h += front * blob(P, F(0.04, zc), [0, 0, 1], ((z1 - z0) * 0.62, 0.034), 0.0012)
+        h += front * blob(P, F(0.04, zc), [0, 0, 1], ((z1 - z0) * 0.62, 0.034), 0.002)
+    h -= front * blob(P, F(0.0, 1.0), [0, 0, 1], (0.07, 0.07), 0.004)  # a flat lower belly
+    h -= front * blob(P, F(0.0, 1.112), [0, 0, 1], (0.012, 0.009), 0.004)  # navel
     h += front * groove(P, polyline([F(0.10, 1.38), F(0.088, 1.25), F(0.078, 1.15)]), 0.012, 0.002)
-    h += front * groove(P, polyline([F(0.135, 1.08), F(0.085, 1.0), F(0.035, 0.955)]), 0.012, 0.004)
+    inguinal = [F(0.135, 1.08), F(0.085, 1.0), F(0.035, 0.955)]  # the V lines
+    h += front * groove(P, polyline(inguinal), 0.013, 0.0025)
     h += blob(P, S.hit([0.08, -0.02, 1.13], [1, -0.6, 0]), [0, 0, 1], (0.08, 0.04), 0.004)
     # Serratus fingers under the armpit.
     for z in (1.31, 1.345, 1.38):
         h += blob(P, S.hit([0.08, -0.04, z], [1, -0.9, 0]), [1, 0, 0.6], (0.03, 0.014), 0.0012)
+    # Trapezius: flatten its top where it climbs the neck, so the neck shows between it and the egg.
+    h -= blob(P, S.hit([0.085, 0.01, 1.62], [0.3, 0, 1]), [1, 0, -0.4], (0.07, 0.045), 0.008)
     # Back: spine furrow, shoulder blades, lats.
     h += back * groove(P, polyline([B(0.0, 1.06), B(0.0, 1.25), B(0.0, 1.44)]), 0.014, 0.0035)
     h += back * blob(P, B(0.085, 1.46), [0.3, 0, 1], (0.075, 0.06), 0.003)
@@ -305,17 +315,17 @@ def sculpt(P, N, J, S):
         return S.hit(sh + t * (el - sh), d)
 
     delt = A(0.12, out + 0.2 * np.array([0, 0, 1]))
-    h += blob(P, delt + 0.012 * out, arm + 0.2 * out, (0.11, 0.065), 0.007)
+    h += blob(P, delt + 0.02 * out, arm + 0.2 * out, (0.12, 0.085), 0.015)
     h += groove(P, polyline([A(0.05, fwd + out * 0.1 - [0, 0, 0.3]), A(0.25, fwd + out),
                              A(0.45, out), A(0.30, -fwd + out), A(0.05, -fwd)]), 0.010, 0.0035)
-    h += blob(P, A(0.55, fwd), arm, (0.13, 0.04), 0.0055)  # biceps
-    h += blob(P, A(0.5, -fwd + 0.3 * out), arm, (0.16, 0.045), 0.005)  # triceps
+    h += blob(P, A(0.55, fwd), arm, (0.14, 0.045), 0.008)  # biceps
+    h += blob(P, A(0.5, -fwd + 0.3 * out), arm, (0.17, 0.05), 0.008)  # triceps
     h += groove(P, polyline([A(0.38, out + 0.1 * fwd), A(0.85, out + 0.2 * fwd)]), 0.009, 0.0025)
     fa = (wr - el) / np.linalg.norm(wr - el)
     def Fa(t, d):
         return S.hit(el + t * (wr - el), d)
 
-    h += blob(P, Fa(0.22, out + fwd), fa, (0.11, 0.035), 0.0045)  # brachioradialis
+    h += blob(P, Fa(0.22, out + fwd), fa, (0.12, 0.04), 0.006)  # brachioradialis
     h += blob(P, Fa(0.25, -out + fwd * 0.5), fa, (0.10, 0.03), 0.003)  # flexors
 
     # Leg: quadriceps heads with the vastus medialis teardrop, knee, calf heads.
@@ -338,8 +348,8 @@ def sculpt(P, N, J, S):
     def C(t, d):
         return S.hit(kn + t * (an - kn), d)
 
-    h += blob(P, C(0.28, [-0.6, 1, 0]), sh_, (0.13, 0.04), 0.008)  # medial gastrocnemius
-    h += blob(P, C(0.24, [0.6, 1, 0]), sh_, (0.11, 0.035), 0.0065)  # lateral gastrocnemius
+    h += blob(P, C(0.28, [-0.6, 1, 0]), sh_, (0.13, 0.045), 0.010)  # medial gastrocnemius
+    h += blob(P, C(0.24, [0.6, 1, 0]), sh_, (0.11, 0.04), 0.008)  # lateral gastrocnemius
     h += groove(P, polyline([C(0.1, [0, 1, 0]), C(0.42, [0, 1, 0])]), 0.008, 0.0025)
     h += blob(P, C(0.35, [0.7, -1, 0]), sh_, (0.18, 0.025), 0.003)  # tibialis anterior
     return h
@@ -351,7 +361,9 @@ def main():
     hi = v.max(0) + [0.02, 0.02, 0.10]
     shape = np.ceil((hi - lo) / VOX).astype(int) + 1
     print("grid", shape, f"{np.prod(shape) / 1e6:.1f}M")
-    D = body_sdf(v, f, lo, shape)
+    # Loop subdivision first: Anny's 4 cm quads would otherwise show through as flat bands.
+    vs, fs = trimesh.remesh.subdivide_loop(v, f, iterations=2)
+    D = body_sdf(vs, fs, lo, shape)
     # Blur away the base mesh's facets; hands and feet get less, or fingers and toes fuse.
     fine = np.zeros(shape, bool)
     xs, ys, zs = (lo[i] + np.arange(shape[i]) * VOX for i in range(3))
@@ -361,7 +373,7 @@ def main():
                 + (zs[None, None, :] - c[2]) ** 2) < 0.13 ** 2
         fine |= near
     D = np.where(gaussian_filter(fine.astype(np.float32), 0.02 / VOX) > 0.5,
-                 gaussian_filter(D, 0.0022 / VOX), gaussian_filter(D, 0.005 / VOX))
+                 gaussian_filter(D, 0.0018 / VOX), gaussian_filter(D, 0.003 / VOX))
     # Muscles: displace the skin along its normal, on the left half mirrored to the right.
     S = Surface(v, f)
     G = np.stack(np.gradient(D), -1)
@@ -402,9 +414,17 @@ def main():
         vs, fs = fast_simplification.simplify(mesh.vertices, mesh.faces, target_count=FACES, agg=2)
         mesh = trimesh.Trimesh(vs, fs, process=True)
     # Normals from the field's gradient: smoother than the triangles' own.
-    G = np.stack(np.gradient(gaussian_filter(D, 1.0)), -1)
-    ijk = ((mesh.vertices - lo) / VOX).T
-    n = np.stack([map_coordinates(G[..., i], ijk, order=1) for i in range(3)], 1)
+    G = np.stack(np.gradient(gaussian_filter(D, 1.0)), -1) / VOX
+
+    def field(points):
+        ijk = ((points - lo) / VOX).T
+        g = np.stack([map_coordinates(G[..., i], ijk, order=1) for i in range(3)], 1)
+        return map_coordinates(D, ijk, order=1), g
+
+    for _ in range(3):  # decimation leaves vertices off the surface: pull them back onto it
+        d, g = field(mesh.vertices)
+        mesh.vertices -= (d / np.maximum((g * g).sum(1), 1e-6))[:, None] * g
+    n = field(mesh.vertices)[1]
     n /= np.linalg.norm(n, axis=1, keepdims=True)
     # Anny is z-up facing -y; glTF is y-up facing +z.
     R = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]], float)
