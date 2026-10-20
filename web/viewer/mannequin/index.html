@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mannequin preview</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  html, body { margin: 0; height: 100%; background: var(--stage-bg); overflow: hidden; }
+  canvas { display: block; cursor: grab; }
+  #hint { position: fixed; bottom: 18px; width: 100%; text-align: center; font: 11px/1 system-ui, sans-serif;
+          letter-spacing: .12em; color: var(--stage-hint); pointer-events: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="hint">DRAG TO ROTATE · 360°</div>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+const css = getComputedStyle(document.documentElement);
+const token = (name) => new THREE.Color(css.getPropertyValue(name).trim());
+const qs = new URLSearchParams(location.search);
+const num = (k, d) => parseFloat(qs.get(k) ?? d);
+
+// The canvas is transparent over the page background, so tone mapping cannot shift its colour.
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setClearColor(0x000000, 0);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.toneMappingExposure = num("exp", 1.0);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = num("env", 0.1);
+
+const camera = new THREE.PerspectiveCamera(20, innerWidth / innerHeight, 0.1, 50);
+const az = (num("az", 0) * Math.PI) / 180, dist = num("d", 6.4);
+camera.position.set(Math.sin(az) * dist, num("y", 1.0), Math.cos(az) * dist);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, num("ty", 0.95), 0);
+controls.enablePan = false;
+controls.enableZoom = false;
+controls.minPolarAngle = controls.maxPolarAngle = controls.getPolarAngle();
+controls.enableDamping = true;
+
+// Studio light rides with the camera, so every side of the turntable is lit like the Figma frame:
+// a soft key from the front left and above, a weak fill, a rim from behind.
+scene.add(camera);
+const key = new THREE.DirectionalLight(0xffffff, num("key", 1.2));
+key.position.set(-1.5, 3.5, 3.0);
+camera.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, num("fill", 0.3));
+fill.position.set(3.0, 0.2, 2.6);
+camera.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, num("rim", 0.1));
+rim.position.set(1.0, 2.0, -4.0);
+camera.add(rim);
+// Soft studio ambience: a white sky over a warm grey floor.
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb3afa6, num("hemi", 2.7)));
+// The contact shadow: an overhead light whose shadow camera sees only the feet.
+const overhead = new THREE.DirectionalLight(0xffffff, 0.0001);
+overhead.position.set(0.0, 6.0, 0.3);
+overhead.castShadow = true;
+overhead.shadow.mapSize.set(1024, 1024);
+overhead.shadow.radius = 8;
+overhead.shadow.blurSamples = 25;
+Object.assign(overhead.shadow.camera, { left: -0.6, right: 0.6, top: 0.6, bottom: -0.6, near: 5.86, far: 6.5 });
+scene.add(overhead);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(6, 6),
+  new THREE.ShadowMaterial({ color: token("--mannequin-shadow"), opacity: num("shadow", 0.7) }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// A wide, very soft halo under the figure, as in the Figma frame.
+const halo = document.createElement("canvas");
+halo.width = halo.height = 256;
+const g = halo.getContext("2d");
+const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+grad.addColorStop(0, "rgba(0,0,0,0.13)");
+grad.addColorStop(1, "rgba(0,0,0,0)");
+g.fillStyle = grad;
+g.fillRect(0, 0, 256, 256);
+const haloMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.7),
+  new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(halo), transparent: true, depthWrite: false }));
+haloMesh.rotation.x = -Math.PI / 2;
+haloMesh.position.y = 0.001;
+scene.add(haloMesh);
+
+new GLTFLoader().load(qs.get("m") || "mannequin.glb", (gltf) => {
+  gltf.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = new THREE.MeshStandardMaterial({ color: token("--mannequin-skin"), roughness: num("rough", 0.9), metalness: 0 });
+    o.castShadow = true;
+  });
+  scene.add(gltf.scene);
+  requestAnimationFrame(() => requestAnimationFrame(() => { window.__ready = true; }));
+});
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const ao = new GTAOPass(scene, camera, innerWidth, innerHeight);
+ao.updateGtaoMaterial({ radius: num("aor", 0.12), distanceExponent: 1.4, thickness: 1.0, scale: 1.0 });
+ao.blendIntensity = num("ao", 0.9);
+composer.addPass(ao);
+composer.addPass(new OutputPass());
+
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+});
+renderer.setAnimationLoop(() => { controls.update(); composer.render(); });
+</script>
+</body>
+</html>

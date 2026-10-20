@@ -1,0 +1,7 @@
+/* Design tokens for the mannequin preview (Figma "Widget / Body"). */
+:root {
+  --stage-bg: #f3f2ef;
+  --stage-hint: #9a9893;
+  --mannequin-skin: #c9c8c4;
+  --mannequin-shadow: #6f6b64;
+}
