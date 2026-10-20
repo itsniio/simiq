@@ -109,7 +109,7 @@ The sleeves still ride 7–13 mm up the arm on the start body and the pocket edg
 - every zone within ±3 points of CLO on **13 of 27** (fail): `standing` 9 of 9, `hoods` 1 of 9, `drops` 3 of 9. Before tuning (literature values), the same 27 cases gave 10 of 27;
 - sizes rank like CLO's in chest strain on all 12 body × pose pairs (pass);
 - no vertex deeper than CLO's on 31 of 36 (fail, ruling 7): in four of the five, both garments are outside the skin and ours is just closer to it (1.4–2.4 mm against 3.1–3.6 mm); in `hoods` S 192/82 ours is 0.1 mm deeper. Lower inertia lets ours go up to 10.4 mm inside in `drops`, where CLO goes 8.7–17.9 mm;
-- one garment on one body takes 56.0 s (pass).
+- one garment on one body takes 56.0 s (pass), but only at 500 substeps a second, where the posed drape has not converged; converged (1000 × 1) it takes 87.0 s ("Convergence" below).
 
 What still fails: the `hoods` hem, which in our solver either stays on the hips or rides up to the waist, and the three `drops` cases of 176/88, where CLO pinches the underarm. The founders cannot measure friction and shear, so no measured run will follow inside the time box.
 
@@ -121,7 +121,7 @@ What still fails: the `hoods` hem, which in our solver either stays on the hips 
 |---|---|---|
 | every zone within ±3 points of CLO on every held-out case | 13 of 27 (standing 9/9, hoods 1/9, drops 3/9) | fail |
 | sizes rank in the same order of chest strain as CLO | 12 of 12 | pass |
-| one garment on one body under 60 s on the founder's Mac | 56.0 s | pass |
+| one garment on one body under 60 s on the founder's Mac | 56.0 s at 500 substeps/s (not converged); 87.0 s converged | pass only unconverged |
 | no case deeper into the body than CLO's (ruling 7) | 31 of 36 (four of the five outside the skin, one 0.1 mm deeper) | fail |
 | 5.1: the fitted case within 1 point per zone | 1.35 points rms at the constants before tuning, four zones miss | fail |
 
@@ -249,6 +249,38 @@ Held-out, the 27 cases of 180/64, 176/88 and 192/82 (the same 27 in the literatu
 | single μ 0.65, gripper 1.5 (kept) | 10 | 2.86 |
 
 With CLO's own values our jersey slides far more than CLO's. Even `standing` 178/75 M ends with the hem 15.5 points low and the waist 5.3 high, where CLO's stays put. CLO's coefficients therefore do not mean the same as ours: its contact solver, its skin offset, or how it decides that a vertex slides must differ. Every static/kinetic split rode the `hoods` hem up (M −14 to −20). None beat the single coefficient, so the jersey keeps μ 0.65 for both (`KNIT_FRICTION_KINETIC = None`). A default run reproduces the earlier files to 0.0 mm.
+
+**Convergence (20 Oct).** `SUBSTEPS` and `ITERATIONS` can now be set per try. The `hoods` hem of the chosen constants (μ 0.65, inertia ×200) on 178/75 + 192/82, ours − CLO in points:
+
+| Substeps × passes | S | M | L |
+|---|---|---|---|
+| 500 × 2 (the default) | +10.2 / +10.5 | +2.1 / +1.9 | −9.1 / −13.1 |
+| 500 × 4 | +9.2 / +10.2 | −0.6 / −0.7 | −11.3 / −14.2 |
+| 1000 × 1 | −10.9 / −10.8 | −18.8 / −21.8 | −11.7 / −13.9 |
+| 1000 × 2 | −8.9 / −11.6 | −14.3 / −17.6 | −10.0 / −11.6 |
+| 1000 × 4 | −8.4 / −11.1 | −14.0 / −19.0 | −10.8 / −12.7 |
+| 2000 × 2 | −10.8 / −14.0 | −10.8 / −19.5 | −11.2 / −8.2 |
+
+At 500 substeps a second the drape has not converged. Twice as many substeps rides every hem up to the waist, and from 1000 on the result stays there. So the S and M that held at 500 substeps were held by the coarse time step, not by the friction. The tuning above was partly fitting that.
+
+Converged (1000 × 1), scored on 178/75 + 192/82, out of 18:
+
+| μ (static / kinetic), inertia | within 3 | rms | `hoods` hem | `drops` hem |
+|---|---|---|---|---|
+| 0.9, ×200 | 9 | 3.79 | rides up, −6 to −19 | +1 to +5 |
+| 1.0, ×200 | 9 | 3.67 | S, M hold +8 to +17; L rides −6 to −7 | +1 to +5 |
+| 1.05, ×200 | 6 | 3.57 | as 1.0 | +3 to +5 |
+| 1.2 / 1.5, ×200 | 7 / 6 | 8.02 / 12.05 | holds, +8 to +23 | S, M stick, up to +48 |
+| 1.0, ×50 | 8 | 8.06 | holds, +8 to +20 | S sticks, +44 to +51 |
+| 1.0 / 0.5, ×50 | 10 | 4.10 | rides up, −8 to −21 | −1.7 to +1.4 |
+| 1.0 / 0.3, ×200 | 9 | 4.53 | rides up, −8 to −19 | −0.8 to +3.0 |
+| 1.0 / 0.7, ×50 | 8 | 4.35 | S holds +12; M, L ride −10 to −20 | +1 to +9 |
+| 1.0 / 0.5, ×50, bending 1e-4 | 0 | 3.76 | rides less, −5 to −16 | +4 to +8; standing waist +4 to +7 |
+
+- **Converged, our hem is all or nothing.** Under Coulomb friction it either holds on the hips or rides to the waist, with every coefficient, static/kinetic split and inertia tried. CLO's stops halfway. No single coefficient fits both poses: `hoods` would need one above about 1.0, while `drops` slides as in CLO's only below it, or with a low kinetic coefficient.
+- **On the 18 cases of 180/64 + 176/88**, the three best converged tries get 6–7 of 18. The unconverged default gets 9.
+- **Converged costs more than the budget:** 1000 × 1 takes 87.0 s per garment (500 × 2: 56.9 s). The 60 s pass holds only at a step that has not converged.
+- The default stays 500 × 2 with μ 0.65, the best on held-out cases. Its agreement in the poses depends on the time step, and the report counts that against it.
 
 All 36 cases, tuned; "(fitted)" marks the development body:
 

@@ -479,13 +479,13 @@ def timing():
     t1 = time.perf_counter()
     for f in range(1, len(frames)):
         solver.move_body(body, frames[f])
-        solver.run(cloth, 1 / 30, body=body)
+        solver.run(cloth, 1 / 30, body=body, substeps_per_s=SUBSTEPS, iterations=ITERATIONS)
     solver.wp.synchronize()
     t2 = time.perf_counter()
     seconds = (len(frames) - 1) / 30
     print(f"{platform.processor() or platform.machine()}, Warp {solver.wp.__version__} on CPU")
     print(f"{cloth.faces.shape[0]} triangles, {cloth.x.shape[0]} vertices, {seconds:.2f} s "
-          f"simulated, {solver.SUBSTEPS_PER_S}/s × {solver.ITERATIONS} passes")  # fmt: skip
+          f"simulated, {SUBSTEPS}/s × {ITERATIONS} passes")  # fmt: skip
     print(f"setup {t1 - t0:.1f} s, simulation {t2 - t1:.1f} s ({(t2 - t1) / seconds:.1f} s per "
           f"simulated second), total {t2 - t0:.1f} s")  # fmt: skip
 
@@ -522,6 +522,8 @@ CALIBRATION_GRID = {
     "friction": (0.5, 0.7, 1.0, 1.4),
     "shear": (20.0, 40.0, 80.0),
 }  # scales tried per direction, a factor 2 apart
+SUBSTEPS = solver.SUBSTEPS_PER_S  # per simulated second in `simulate`; a try may raise them
+ITERATIONS = solver.ITERATIONS
 FIT_SETTLE_S = 3.0  # the fitted case settles this long on the static start body
 
 
@@ -569,10 +571,10 @@ def simulate(pose, size, friction=None, shear=None):
     t0 = time.perf_counter()
     for f in range(1, len(lead)):
         solver.move_body(body, lead[f])
-        solver.run(cloth, 1 / 30, body=body)
+        solver.run(cloth, 1 / 30, body=body, substeps_per_s=SUBSTEPS, iterations=ITERATIONS)
     for f in range(1, max(wanted) + 1):
         solver.move_body(body, frames[f])
-        solver.run(cloth, 1 / 30, body=body)
+        solver.run(cloth, 1 / 30, body=body, substeps_per_s=SUBSTEPS, iterations=ITERATIONS)
         if f in wanted:
             saved[wanted[f]] = solver.positions_mm(cloth)
     seconds = time.perf_counter() - t0
@@ -827,8 +829,10 @@ def apply_try():
     spec = os.environ.get("SPIKE_TRY", "")
     for item in filter(None, spec.split(",")):
         name, value = item.split("=")
-        module = solver if hasattr(solver, name) else sys.modules[__name__]
-        setattr(module, name, float(value))
+        here = sys.modules[__name__]
+        module = here if hasattr(here, name) else solver
+        kind = type(getattr(module, name))
+        setattr(module, name, (int if kind is int else float)(float(value)))
     return f"-try-{spec}" if spec else ""
 
 
