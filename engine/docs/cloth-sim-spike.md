@@ -295,6 +295,24 @@ Converged (1000 × 1), scored on 178/75 + 192/82, out of 18:
 
 The hem now moves gradually with v₀ instead of all or nothing. M agrees at v₀ 10, S at 15. But the sizes still part the wrong way round: our S holds where CLO's slides, and our L slides where CLO's holds. The converged run of v₀ 10 rides further than the 500 × 2 one, so the regularized model, too, depends on the time step. Not adopted; the default stays as it was. Runs stopped here (founder's machine shut down, 20 Oct). Next would be: v₀ at the converged step, and why the sizes part the wrong way round.
 
+**Adhesive friction (20 Oct).** Under Coulomb friction our S holds and our L slides, the opposite of CLO. One reason fits: the sizes differ in course (width) only, so the upward pull on the hem in the pose is about the same for every size, while the pressure is highest for S. If friction does not grow with pressure, the tighter S slides first, as CLO's does. The solver now takes F = μN + τA (`KNIT_ADHESION_PA`, the contact's shear strength τ; tested; default 0). It also combines with the creep v₀. On 178/75 + 192/82, out of 18:
+
+| μ, τ Pa, v₀ mm/s, step | within 3 | rms | `hoods` hem S / M / L |
+|---|---|---|---|
+| 0.3, 100, —, 500 × 2 | 8 | 4.13 | all ride up, −10 to −19 |
+| 0.3, 200, —, 500 × 2 | 10 | 2.99 | −6.5 to −11 / −11 to −15 / −1.9 to −3.2 |
+| 0.3, 300, —, 500 × 2 | 6 | 3.53 | +9 / −14 to −18 / +7 to +8 (jumps) |
+| 0.5, 200, 10, 500 × 2 | 9 | 2.40 | −4 to −7 / −6 to −7 / ±0.1 |
+| **0.5, 200, 5, 500 × 2** | 10 | **1.86** | +5 / 0 / +2 to +3 |
+| 0.5, 150, 5, 500 × 2 | 12 | 1.97 | −1 to −2.4 / −0.8 to −1.5 / −0.6 to −5.7 |
+| 0.5, 200, 5, 1000 × 1 | 9 | 4.06 | all ride up, −8 to −19 |
+| 0.5, 600, 5, 1000 × 1 | 9 | 2.53 | −7 / −4 to +2 / 0 to +8 |
+
+- With τ and a small creep (v₀ 5 mm/s), the posed hem at 500 × 2 agrees on the development bodies for the first time: every `hoods` hem within 5.3 points, rms 1.86.
+- Converged (1000 × 1), the same constants ride up again; τ 600 brings the hem back within about 8 points, but one body differs from another (M −4 and +2, L 0 and +8).
+- **Held out, 180/64 + 176/88:** 7 of 18 for τ 600 converged, 7 for τ 150 and 9 for τ 200 at 500 × 2 (rms 5.7). The default without τ gets 9, rms 5.88. On those bodies the converged τ 600 holds every `hoods` hem too much, +3.5 to +10.7. The three `drops` cases of 176/88 stay 19–31 off at the sleeve opening (CLO's pinch).
+- None generalizes better than the default, so none is adopted. Adhesive friction is the first model whose sizes part the way CLO's do, so the next step would be to tune it at a converged step on more bodies. That needs the converged run under 60 s first (87 s now).
+
 All 36 cases, tuned; "(fitted)" marks the development body:
 
 | pose | size | body | chest | waist | hem | sleeve_opening | back_length | worst | deepest ours / CLO mm |
