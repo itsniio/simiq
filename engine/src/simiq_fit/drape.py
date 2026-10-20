@@ -401,6 +401,8 @@ def solve_hinges(
 
 LAYER_QUERY_MM = 20.0  # how far from the under layer an upper-layer vertex is looked up
 REFRESH_EVERY = 4  # each substep one vertex in 4 looks its nearest body face up afresh
+REFIT_EVERY = 1  # the body's BVH bounds are refitted every this many substeps (points every one)
+LAYER_EVERY = 1  # the pocket layer is kept off the panel every this many substeps
 
 
 @wp.kernel
@@ -632,7 +634,8 @@ def run(
             if body.moving:
                 args = [body.start, body.end, (step + 1) / steps, body.mesh.points]
                 wp.launch(lerp_body, body.start.shape[0], args)
-                body.mesh.refit()
+                if step % REFIT_EVERY == 0 or step == steps - 1:
+                    body.mesh.refit()
                 args = [body.mesh.id, body.previous, c.x, c.inv_mass, c.near_face, c.near_uv]
                 wp.launch(carry, n, [*args, c.near_distance])
         args = [c.x, c.v, c.previous, c.inv_mass, c.force, c.contact_push, dt]
@@ -648,7 +651,7 @@ def run(
         for ids in c.hinge_colours:
             args = [ids, c.hinges, c.hinge_k, c.hinge_stiffness, c.x, c.inv_mass, c.hinge_lam, dt]
             wp.launch(solve_hinges, ids.shape[0], args)
-        if c.layer_mesh is not None:
+        if c.layer_mesh is not None and step % LAYER_EVERY == 0:
             c.layer_mesh.refit()
             args = [c.layer_mesh.id, c.layer_ids, c.layer_side, c.x, c.inv_mass, c.contact_push]
             wp.launch(collide_layer, c.layer_ids.shape[0], [*args, c.layer_distance])

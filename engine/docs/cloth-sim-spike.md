@@ -313,6 +313,19 @@ The hem now moves gradually with v₀ instead of all or nothing. M agrees at v�
 - **Held out, 180/64 + 176/88:** 7 of 18 for τ 600 converged, 7 for τ 150 and 9 for τ 200 at 500 × 2 (rms 5.7). The default without τ gets 9, rms 5.88. On those bodies the converged τ 600 holds every `hoods` hem too much, +3.5 to +10.7. The three `drops` cases of 176/88 stay 19–31 off at the sleeve opening (CLO's pinch).
 - None generalizes better than the default, so none is adopted. Adhesive friction is the first model whose sizes part the way CLO's do, so the next step would be to tune it at a converged step on more bodies. That needs the converged run under 60 s first (87 s now).
 
+**Speed and sensitivity (20 Oct).** Converged (1000 × 1) took 87 s per garment. Per substep: body collision 4.6 ms, stretch 2.8, body BVH refit 2.2, pocket layer 1.1, bending 0.7 (Warp's CPU kernels run on one core). Three knobs in `drape.py` (defaults unchanged) cut it to **55.5–55.7 s**: a fresh BVH lookup for one vertex in 16 per substep instead of 4 (`REFRESH_EVERY`), the body's BVH bounds refitted every 8th substep (`REFIT_EVERY`; the points move every substep), and the pocket layer kept off the panel every 2nd (`LAYER_EVERY`).
+
+Standing, the fast run lies within 0.55–0.78 mm (mean) of the slow one. In the poses it lies 9–32 mm away, and the hem flips. Each knob alone, on the `hoods` hem of the converged adhesive try (μ 0.5, τ 600 Pa, v₀ 5 mm/s), ours − CLO in points:
+
+| | S 178/75 | S 192/82 | M 178/75 | M 192/82 | L 178/75 | L 192/82 |
+|---|---|---|---|---|---|---|
+| none | −7.2 | −6.7 | −4.2 | +2.1 | +0.1 | +7.9 |
+| `REFRESH_EVERY` 16 | +7.4 | +10.6 | −5.8 | +2.1 | +8.3 | +7.9 |
+| `REFIT_EVERY` 8 | −7.9 | −9.1 | +0.9 | +2.4 | −4.5 | +8.5 |
+| `LAYER_EVERY` 2 | +12.2 | +11.6 | +4.7 | +2.9 | +9.4 | +8.9 |
+
+**The posed hem is chaotic in our solver.** A change that only loosens the body's BVH bounds by fractions of a millimetre moves a hem by 5 points, and the others move it by up to 20. Whether a hem catches on the hips is decided by perturbations far below anything physical. That is ±10 points of noise against a ±3-point criterion. Every single posed hem number in this report, ours, carries that noise, and the tuning above was partly fitting it. Standing is not affected. CLO's own posed hems, one run each, may be just as sensitive; that was not testable here. A meaningful comparison in the poses would score an ensemble of slightly perturbed runs (the spread, not one run) against CLO, or leave the hem zone out.
+
 All 36 cases, tuned; "(fitted)" marks the development body:
 
 | pose | size | body | chest | waist | hem | sleeve_opening | back_length | worst | deepest ours / CLO mm |
