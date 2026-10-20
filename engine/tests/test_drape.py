@@ -200,14 +200,17 @@ def box(low, high):
     return corners, np.array([t for a, b, c, d in quads for t in ((a, b, c), (a, c, d))])
 
 
-def sideways_slide(pull_times_friction, seconds=1.0, kinetic=FRICTION):
+def sideways_slide(pull_times_friction, seconds=1.0, kinetic=FRICTION, slip_mm_s=0.0):
     """How far a 40 × 40 mm sheet lying on a box slides under a sideways pull."""
     positions, faces, rest = grid(5, 5, 10.0)
     sheet_xz = np.c_[positions[:, 0], np.full(len(positions), COLLISION_MM), positions[:, 1]]
     weight = KNIT.weight_g_m2 / 1000 * 0.04 * 0.04 * 9.81  # N
     pull = np.zeros_like(sheet_xz)
     pull[:, 0] = pull_times_friction * FRICTION * weight / len(pull)
-    sheet = cloth(rest, faces, sheet_xz, KNIT, force_n=pull, friction_kinetic=np.full(25, kinetic))
+    kinetic = np.full(25, kinetic)
+    sheet = cloth(
+        rest, faces, sheet_xz, KNIT, force_n=pull, friction_kinetic=kinetic, slip_mm_s=slip_mm_s
+    )
     run(sheet, seconds=seconds, body=body(*box((-50, -20, -90), (90, 0, 50))))
     return positions_mm(sheet)[:, 0].mean() - sheet_xz[:, 0].mean()
 
@@ -230,6 +233,14 @@ def test_once_sliding_the_cloth_feels_only_kinetic_friction():
     )
     # Below the static threshold the low kinetic coefficient does not matter: it holds.
     assert abs(sideways_slide(0.5, kinetic=0.1 * FRICTION)) < 0.5
+
+
+def test_regularized_friction_lets_a_held_sheet_creep_at_a_rate_set_by_the_pull():
+    # Friction μN · min(1, v/v₀): under a pull P < μN the sheet creeps at v = v₀ · P/(μN).
+    # P = 0.5 μW and v₀ = 10 mm/s: 5 mm/s, so 5 mm in 1 s (the transient lasts m v₀/(μW) = 1 ms).
+    assert sideways_slide(0.5, slip_mm_s=10.0) == pytest.approx(5.0, rel=0.15)
+    # A pull above μN still slides freely: the same as plain Coulomb friction.
+    assert sideways_slide(1.2, seconds=0.05, slip_mm_s=10.0) == pytest.approx(2.37, rel=0.25)
 
 
 def sheared(shear_n_per_m):

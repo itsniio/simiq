@@ -282,6 +282,19 @@ Converged (1000 × 1), scored on 178/75 + 192/82, out of 18:
 - **Converged costs more than the budget:** 1000 × 1 takes 87.0 s per garment (500 × 2: 56.9 s). The 60 s pass holds only at a step that has not converged.
 - The default stays 500 × 2 with μ 0.65, the best on held-out cases. Its agreement in the poses depends on the time step, and the report counts that against it.
 
+**Regularized friction (20 Oct).** Friction μN · min(1, v/v₀) (`KNIT_SLIP_MM_S`, tested; default 0, plain Coulomb) lets a held hem creep, so it can stop partway. At μ 1.0, inertia ×200, 500 × 2, on 178/75 + 192/82, out of 18:
+
+| v₀ mm/s | within 3 | rms | `hoods` hem S / M / L | `drops` hem |
+|---|---|---|---|---|
+| 3 | 6 | 3.28 | +14 / +6 / +9 (holds) | +1.5 to +7.5 |
+| 10 | 7 | 3.19 | +4 to +7 / −1.6 to −1.8 / −5 to −9 | +3 to +16 |
+| 15 | 8 | 2.99 | −2.3 to +0.8 / −9 to −13 / −6 to −11 | +1 to +5 |
+| 20 | 7 | 4.31 | −9 to −13 / −16 to −20 / −9 to −14 | +0.5 to +5 |
+| 30 | 7 | 4.16 | rides up, −9 to −19 | 0 to +2 |
+| 10, converged (1000 × 1) | 8 | 3.68 | −4 to −10 / −12 to −14 / −11 to −13 | −1.5 to +3.8 |
+
+The hem now moves gradually with v₀ instead of all or nothing. M agrees at v₀ 10, S at 15. But the sizes still part the wrong way round: our S holds where CLO's slides, and our L slides where CLO's holds. The converged run of v₀ 10 rides further than the 500 × 2 one, so the regularized model, too, depends on the time step. Not adopted; the default stays as it was. Runs stopped here (founder's machine shut down, 20 Oct). Next would be: v₀ at the converged step, and why the sizes part the wrong way round.
+
 All 36 cases, tuned; "(fitted)" marks the development body:
 
 | pose | size | body | chest | waist | hem | sleeve_opening | back_length | worst | deepest ours / CLO mm |
