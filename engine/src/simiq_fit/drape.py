@@ -52,6 +52,7 @@ class Cloth:
     friction: wp.array  # (n,) static Coulomb coefficient of each vertex against what it touches
     friction_kinetic: wp.array  # (n,) the coefficient once the vertex slides
     slip: float  # regularized friction μN·min(1, v/slip), m/s; 0 is plain Coulomb
+    adhesion: float  # friction τ·A as an acceleration, τ / (areal density · inertia), m/s²
     force: wp.array  # (n,) vec3 force on each vertex: its weight plus any load, N
     lam: wp.array  # (m,) vec3 λ of each triangle's course, wale and shear constraint
     hinge_lam: wp.array  # (h,) λ of each hinge
@@ -159,6 +160,7 @@ def cloth(
     shear_n_per_m=SHEAR_N_PER_M,
     friction_kinetic=None,
     slip_mm_s=0.0,
+    adhesion_pa=0.0,
 ) -> Cloth:
     """A cloth ready to simulate: rest triangles (course, wale) mm, faces, positions mm.
 
@@ -172,6 +174,7 @@ def cloth(
     shear_n_per_m: the fabric's membrane shear modulus (τ = G γ), default SHEAR_N_PER_M.
     friction_kinetic: (n,) the coefficient while a vertex slides, default the static one.
     slip_mm_s: above 0, friction μN·min(1, v/slip): below that slip speed a held vertex creeps.
+    adhesion_pa: friction μN + τA: a shear strength τ of the contact, whatever the pressure.
     """
     faces = np.asarray(faces)
     rest = np.asarray(rest_mm, float) / 1000
@@ -207,6 +210,7 @@ def cloth(
         inv_mass=wp.array(inv_mass, dtype=float),
         friction=wp.array(static, dtype=float),
         slip=slip_mm_s / 1000.0,
+        adhesion=adhesion_pa / (fabric.weight_g_m2 / 1000 * inertia_scale),
         friction_kinetic=wp.array(
             static if friction_kinetic is None else friction_kinetic, dtype=float
         ),
@@ -412,6 +416,7 @@ def collide(
     friction: wp.array(dtype=float),
     friction_kinetic: wp.array(dtype=float),
     slip: float,
+    adhesion: float,
     dt: float,
     step: int,
 ):
@@ -477,16 +482,18 @@ def collide(
         slide = slide - wp.dot(slide, n) * n
         length = wp.length(slide)
         if length > 1.0e-12:
+            held = friction[i] * push + adhesion * dt * dt  # μN + τA, as a move per substep
             if slip > 0.0:
-                # μN·min(1, v/slip): viscous below the slip speed (implicit, never a full stop),
-                # capped at Coulomb's μ·push
-                beta = friction[i] * push / (slip * dt)
-                removal = wp.min(friction[i] * push, length * beta / (1.0 + beta))
+                # (μN + τA)·min(1, v/slip): viscous below the slip speed (implicit, never a full
+                # stop), capped at the full friction
+                beta = held / (slip * dt)
+                removal = wp.min(held, length * beta / (1.0 + beta))
                 target = target - slide * (removal / length)
-            elif length <= friction[i] * push:
+            elif length <= held:
                 target = target - slide
             else:
-                target = target - slide * (friction_kinetic[i] * push / length)
+                moving = friction_kinetic[i] * push + adhesion * dt * dt
+                target = target - slide * wp.min(1.0, moving / length)
         contact_push[i] = contact_push[i] + (target - x[i])
         x[i] = target
 
@@ -657,6 +664,7 @@ def run(
                     c.friction,
                     c.friction_kinetic,
                     c.slip,
+                    c.adhesion,
                     dt,
                     step,
                 ],

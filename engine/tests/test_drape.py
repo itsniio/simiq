@@ -243,6 +243,27 @@ def test_regularized_friction_lets_a_held_sheet_creep_at_a_rate_set_by_the_pull(
     assert sideways_slide(1.2, seconds=0.05, slip_mm_s=10.0) == pytest.approx(2.37, rel=0.25)
 
 
+def adhesive_slide(pull_n, seconds, adhesion_pa):
+    """How far the 40 × 40 mm sheet slides with friction τ·A only (μ = 0) under a sideways pull."""
+    positions, faces, rest = grid(5, 5, 10.0)
+    sheet_xz = np.c_[positions[:, 0], np.full(len(positions), COLLISION_MM), positions[:, 1]]
+    pull = np.zeros_like(sheet_xz)
+    pull[:, 0] = pull_n / len(pull)
+    sheet = cloth(
+        rest, faces, sheet_xz, KNIT, force_n=pull, friction=np.zeros(25), adhesion_pa=adhesion_pa
+    )
+    run(sheet, seconds=seconds, body=body(*box((-50, -20, -90), (90, 0, 50))))
+    return positions_mm(sheet)[:, 0].mean() - sheet_xz[:, 0].mean()
+
+
+def test_adhesive_friction_holds_a_contact_up_to_its_shear_strength_whatever_the_pressure():
+    # τ = 2 Pa over (0.04 m)² holds τA = 3.2 mN, however light the sheet. Half of it holds; at
+    # 1.5 τA the net 1.6 mN accelerates m = 190 g/m² · (0.04 m)² = 0.304 g at 5.26 m/s²:
+    # damped at k = 2/s, x = a · 0.0012096 s² = 6.36 mm in 0.05 s.
+    assert abs(adhesive_slide(0.0016, 1.0, adhesion_pa=2.0)) < 0.5
+    assert adhesive_slide(0.0048, 0.05, adhesion_pa=2.0) == pytest.approx(6.36, rel=0.25)
+
+
 def sheared(shear_n_per_m):
     """How far the top edge of a 100 mm wide, 10 mm high strip moves under a 0.2 N sideways pull.
 

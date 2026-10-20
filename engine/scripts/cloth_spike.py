@@ -425,6 +425,7 @@ def simulated_garment(size="M", scales=(1.0, 1.0), friction_knit=None, shear=Non
         if KNIT_FRICTION_KINETIC is None
         else np.full(len(garment.positions), KNIT_FRICTION_KINETIC),
         slip_mm_s=KNIT_SLIP_MM_S,
+        adhesion_pa=KNIT_ADHESION_PA,
     )
     return garment, cloth
 
@@ -513,6 +514,7 @@ KNIT_FRICTION = 0.65
 # projects' .avt); with them ours rides up even standing (report, "CLO's avatar friction").
 KNIT_FRICTION_KINETIC = None
 KNIT_SLIP_MM_S = 0.0  # above 0, friction μN·min(1, v/this): a held hem creeps; 0 is Coulomb
+KNIT_ADHESION_PA = 0.0  # friction μN + τA: the contact's shear strength τ, independent of pressure
 # Shear: a stretch weft knit's KES-FB1 rigidity, 0.28–1.50 cN/cm/deg (US 6,561,230 B1, Asahi
 # Kasei 2003), its geometric mean 0.648 → 37.1 N/m per rad; the range is 16.0–85.9 N/m.
 KNIT_SHEAR_N_PER_M = solver.kes_shear_n_per_m((0.28 * 1.50) ** 0.5)
