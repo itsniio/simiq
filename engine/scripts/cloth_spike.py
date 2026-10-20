@@ -515,6 +515,8 @@ KNIT_FRICTION = 0.65
 KNIT_FRICTION_KINETIC = None
 KNIT_SLIP_MM_S = 0.0  # above 0, friction μN·min(1, v/this): a held hem creeps; 0 is Coulomb
 KNIT_ADHESION_PA = 0.0  # friction μN + τA: the contact's shear strength τ, independent of pressure
+PERTURB_SEED = 0  # above 0, every frame jitters the cloth by PERTURB_MM (an ensemble member)
+PERTURB_MM = 0.005
 # Shear: a stretch weft knit's KES-FB1 rigidity, 0.28–1.50 cN/cm/deg (US 6,561,230 B1, Asahi
 # Kasei 2003), its geometric mean 0.648 → 37.1 N/m per rad; the range is 16.0–85.9 N/m.
 KNIT_SHEAR_N_PER_M = solver.kes_shear_n_per_m((0.28 * 1.50) ** 0.5)
@@ -573,11 +575,20 @@ def simulate(pose, size, friction=None, shear=None):
     body = solver.body(lead[0], body_faces())
     saved = {}
     t0 = time.perf_counter()
+    rng = np.random.default_rng(PERTURB_SEED)
+
+    def jitter():
+        if PERTURB_SEED:
+            x = cloth.x.numpy()
+            cloth.x.assign(x + rng.normal(0.0, PERTURB_MM / 1000, x.shape).astype(x.dtype))
+
     for f in range(1, len(lead)):
         solver.move_body(body, lead[f])
+        jitter()
         solver.run(cloth, 1 / 30, body=body, substeps_per_s=SUBSTEPS, iterations=ITERATIONS)
     for f in range(1, max(wanted) + 1):
         solver.move_body(body, frames[f])
+        jitter()
         solver.run(cloth, 1 / 30, body=body, substeps_per_s=SUBSTEPS, iterations=ITERATIONS)
         if f in wanted:
             saved[wanted[f]] = solver.positions_mm(cloth)
@@ -695,6 +706,36 @@ def dev(*bodies):
     rms = float(np.sqrt(np.mean(np.square(diffs))))
     n = 9 * len(bodies)
     print(f"{'+'.join(bodies)}{TRY}: within ±3 points {within} of {n}, rms {rms:.2f} points")
+
+
+def ensemble(n, *bodies):
+    """Mean and spread over n jittered runs (PERTURB_SEED 1…n on top of SPIKE_TRY), against CLO."""
+    base = os.environ.get("SPIKE_TRY", "")
+    sets = dict(np.load(ZONES))
+    clo = zone_strain_table()
+    within, means = 0, []
+    for pose in ("hoods", "drops"):
+        for size in ("S", "M", "L"):
+            runs = []
+            for k in range(1, int(n) + 1):
+                spec = f"{base},PERTURB_SEED={k}" if base else f"PERTURB_SEED={k}"
+                runs.append(np.load(OURS / f"{pose}-{size}-try-{spec}.npz"))
+            for b in bodies:
+                diffs = np.array([
+                    [(zone_strains(jersey(size), r[b], sets)[z] - clo[pose, size, b][z]) * 100
+                     for z in ZONE_NAMES]
+                    for r in runs
+                ])  # fmt: skip
+                mean, sd = diffs.mean(0), diffs.std(0)
+                means += list(mean)
+                worst = float(np.abs(mean).max())
+                within += worst <= 3
+                parts = zip(ZONE_NAMES, mean, sd, strict=True)
+                cells = " ".join(f"{z} {m:+5.1f}±{d:3.1f}" for z, m, d in parts)
+                print(f"{pose:6} {size} {b}: {cells} | worst mean {worst:4.1f}")
+    rms = float(np.sqrt(np.mean(np.square(means))))
+    print(f"ensemble of {n}, {'+'.join(bodies)}, {base}: mean within ±3 points "
+          f"{within} of {6 * len(bodies)}, rms of means {rms:.2f}")  # fmt: skip
 
 
 RENDERS = Path(__file__).parents[1] / "docs" / "cloth-sim-spike"  # renders may be committed
@@ -856,6 +897,7 @@ if __name__ == "__main__":
         "simulate": simulate,
         "report": report,
         "dev": dev,
+        "ensemble": ensemble,
         "calibrate": calibrate,
         "render": render,
     }
